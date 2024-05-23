@@ -1,0 +1,23 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.apache.kafka" level="DEBUG"/>
+    <logger name="org.apache.kafka.clients" level="DEBUG"/>
+    <logger name="org.apache.kafka.clients.consumer" level="DEBUG"/>
+    <logger name="org.apache.kafka.clients.consumer.internals.AbstractCoordinator" level="DEBUG"/>
+    <logger name="org.apache.kafka.common.network" level="DEBUG"/>
+    <logger name="org.apache.kafka.common.metrics" level="DEBUG"/>
+    <logger name="org.apache.kafka.common.protocol" level="DEBUG"/>
+    <logger name="org.apache.kafka.common.record" level="DEBUG"/>
+    <logger name="org.apache.kafka.common.requests" level="DEBUG"/>
+
+    <logger name="bcgov.aps" level="DEBUG"/>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
