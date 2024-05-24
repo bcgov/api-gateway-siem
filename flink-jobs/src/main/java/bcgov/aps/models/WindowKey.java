@@ -12,7 +12,7 @@ public class WindowKey {
         MetricsObject record = new MetricsObject();
         record.setRequestUriHost(parts[0]);
         record.setClientIp(parts[1]);
-        record.setSuccess(Boolean.parseBoolean(parts[2]));
+        record.setStatus(Boolean.parseBoolean(parts[2]) ? MetricsObject.HTTP_STATUS.OK: MetricsObject.HTTP_STATUS.Error);
         return record;
     }
 }

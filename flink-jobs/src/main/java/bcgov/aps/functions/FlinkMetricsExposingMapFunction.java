@@ -25,7 +25,7 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
 
     private transient Long lastMetricTs = Long.valueOf(0L);
 
-    private Map<String, MetricGroup> ips = new HashMap<>();
+    private Map<String, MetricGroup> ips;
 
     private transient int valueToExpose;
     private transient Counter customCounter1;
@@ -33,6 +33,8 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
     @Override
     public void open(Configuration parameters) {
         log.debug("Prometheus Map - OPEN");
+
+        ips = new HashMap<>();
 
         parentMetricGroup = getRuntimeContext().getMetricGroup();
 

@@ -91,7 +91,7 @@ public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String,
             MetricsObject met = new MetricsObject();
             met.setClientIp("other");
             met.setWindowTime(context.window().maxTimestamp());
-            met.setSuccess(true); // not totally accurate - count includes all requests :(
+            met.setStatus(MetricsObject.HTTP_STATUS.NA); // not totally accurate - count includes all requests :(
             out.collect(new Tuple2<>(met, other));
         }
     }

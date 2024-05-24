@@ -17,8 +17,6 @@ public class CountWindowFunction implements WindowFunction<Integer, Tuple2<Strin
         int count = input.iterator().next();
         log.debug("CountWindow {} {} {}",
                 window.maxTimestamp(), key, count);
-//        MetricsObject o = new MetricsObject();
-//        o.setClientIp(key);
         out.collect(new Tuple2<>(key, count));
     }
 }
