@@ -8,17 +8,17 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
 @Slf4j
-public class CountWindowFunction implements WindowFunction<Integer, Tuple2<MetricsObject, Integer>, String, TimeWindow> {
+public class CountWindowFunction implements WindowFunction<Integer, Tuple2<String, Integer>, String, TimeWindow> {
     @Override
     public void apply(String key, TimeWindow window,
                       Iterable<Integer> input,
-                      Collector<Tuple2<MetricsObject,
-                              Integer>> out) throws Exception {
+                      Collector<Tuple2<String,
+                              Integer>> out) {
         int count = input.iterator().next();
         log.debug("CountWindow {} {} {}",
                 window.maxTimestamp(), key, count);
-        MetricsObject o = new MetricsObject();
-        o.setClientIp(key);
-        out.collect(new Tuple2<>(o, count));
+//        MetricsObject o = new MetricsObject();
+//        o.setClientIp(key);
+        out.collect(new Tuple2<>(key, count));
     }
 }

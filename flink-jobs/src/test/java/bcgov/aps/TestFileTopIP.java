@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.net.URL;
 
 public class TestFileTopIP {
     private static final Logger LOG =
@@ -59,7 +58,7 @@ public class TestFileTopIP {
                 env.fromSource(fileSource,
                         WatermarkStrategy.forMonotonousTimestamps(), "whatever");
 
-        DataStream<Tuple2<MetricsObject, Integer>> parsedStream = inputStream
+        DataStream<Tuple2<String, Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction())
                 .assignTimestampsAndWatermarks(new
                  MyAssignerWithPunctuatedWatermarks())
@@ -74,10 +73,10 @@ public class TestFileTopIP {
                 .process(new TopNProcessFunction(10))
                 .map(new FlinkMetricsExposingMapFunction());
 
-        resultStream.addSink(new Slf4jPrintSinkFunction<>());
+        resultStream.addSink(new Slf4jPrintSinkFunction());
+
+        resultStream.addSink(new AssertSinkFunction<>());
 
         env.execute("Flink Kafka Top IPs");
-
-        Thread.sleep(20000);
     }
 }

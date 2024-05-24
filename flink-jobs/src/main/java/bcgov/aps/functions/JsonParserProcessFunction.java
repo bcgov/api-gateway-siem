@@ -1,5 +1,6 @@
 package bcgov.aps.functions;
 
+import bcgov.aps.JsonUtils;
 import bcgov.aps.models.KongLogRecord;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,21 +15,19 @@ public class JsonParserProcessFunction extends ProcessFunction<String, Tuple2<Ko
     private final ObjectMapper objectMapper;
 
     public JsonParserProcessFunction() {
-        objectMapper = new ObjectMapper();
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper = JsonUtils.getObjectMapper();
     }
 
     @Override
     public void processElement(String value,
                                Context ctx,
                                Collector<Tuple2<KongLogRecord, Integer>> out) {
-        log.debug("Process Item");
         try {
             KongLogRecord jsonNode =
                     objectMapper.readValue(value,
                             KongLogRecord.class);
-            log.debug("IP = {}",
-                    jsonNode.getClientIp());
+            log.debug("{}",
+                    jsonNode);
             out.collect(new Tuple2<>(jsonNode, 1));
         } catch (Exception e) {
             log.error("Parsing error", e);

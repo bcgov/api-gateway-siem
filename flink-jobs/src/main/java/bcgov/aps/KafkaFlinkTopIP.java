@@ -2,6 +2,7 @@ package bcgov.aps;
 
 import bcgov.aps.functions.*;
 import bcgov.aps.models.MetricsObject;
+import bcgov.aps.models.WindowKey;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -12,18 +13,14 @@ import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsIni
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.time.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class KafkaFlinkTopIP {
-    private static final Logger LOG =
-            LoggerFactory.getLogger(KafkaFlinkTopIP.class);
-
     public static void main(String[] args) throws Exception {
 
         String kafkaBootstrapServers = System.getenv(
@@ -32,8 +29,8 @@ public class KafkaFlinkTopIP {
                 Arrays.asList(System.getenv("KAFKA_TOPICS"
                 ).split(","));
 
-        LOG.warn("Topics {}", StringUtils.joinWith("|",
-                kafkaTopics));
+        log.info("Topics {}", StringUtils.join(
+                kafkaTopics, '|'));
 
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.getExecutionEnvironment();
@@ -44,21 +41,22 @@ public class KafkaFlinkTopIP {
         final DataStream<String> inputStream;
 
         SlidingEventTimeWindows slidingEventTimeWindows =
-                SlidingEventTimeWindows.of(Time.seconds(30), Time.seconds(30));
+                SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(30));
 
         KafkaSource<String> kafkaSource =
                 KafkaSource.<String>builder()
                         .setBootstrapServers(kafkaBootstrapServers)
                         .setTopics(kafkaTopics)
+//                        .setTopicPattern(Pattern.compile(".*(api.gov.bc.ca|unknown)$"))
                         .setStartingOffsets(OffsetsInitializer.latest())
                         .setValueOnlyDeserializer(new SimpleStringSchema())
                         .build();
         inputStream = env.fromSource(kafkaSource,
                 WatermarkStrategy.forMonotonousTimestamps(), "Kafka Source");
 
-        DataStream<Tuple2<MetricsObject, Integer>> parsedStream = inputStream
+        DataStream<Tuple2<String, Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction())
-                .keyBy(value -> value.f0.getClientIp())
+                .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(slidingEventTimeWindows)
                 .aggregate(new CountAggregateFunction(),
                         new CountWindowFunction());
@@ -67,9 +65,12 @@ public class KafkaFlinkTopIP {
                 = parsedStream
                 .windowAll(slidingEventTimeWindows)
                 .process(new TopNProcessFunction(10))
-                .map(new FlinkMetricsExposingMapFunction());
+                .map(new FlinkMetricsExposingMapFunction())
+                .map(new GeoLocRichMapFunction());
 
-        resultStream.addSink(new Slf4jPrintSinkFunction<>());
+        resultStream.addSink(new Slf4jPrintSinkFunction());
+
+        resultStream.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers));
 
         env.execute("Flink Kafka Top IPs");
     }

@@ -14,5 +14,14 @@ public class MetricsObject {
     @JsonProperty(value = "client_ip")
     String clientIp;
 
-    Long ts;
+    @JsonProperty(value = "request_uri_host")
+    String requestUriHost;
+
+    @JsonProperty(value = "window_ts")
+    Long windowTime;
+
+    @JsonProperty(value = "success")
+    boolean success;
+
+    GeoLocInfo geo;
 }

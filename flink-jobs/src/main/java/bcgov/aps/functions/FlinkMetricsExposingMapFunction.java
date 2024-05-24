@@ -48,7 +48,7 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
                 .gauge("aps_siem_ip_buffer", new Gauge<Integer>() {
                     @Override
                     public Integer getValue() {
-                        log.error("aps_siem_ip_buffer {}", ips.size());
+                        log.info("aps_siem_ip_buffer {}", ips.size());
                         return ips.size();
                     }
                 });
@@ -60,13 +60,13 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
         log.debug("Prometheus Map");
         valueToExpose++;
 
-        log.error("ExposeMap {} {}", value, lastMetricTs);
+        log.info("ExposeMap {} {}", value, lastMetricTs);
         if (value == null || value.f0 == null || lastMetricTs == null) {
-            lastMetricTs = value.f0.getTs();
+            lastMetricTs = value.f0.getWindowTime();
             metricGroup = parentMetricGroup.addGroup("ts", lastMetricTs.toString());
-        } else if (value.f0.getTs() == lastMetricTs) {
-        } else if (value.f0.getTs() > lastMetricTs) {
-            lastMetricTs = value.f0.getTs();
+        } else if (value.f0.getWindowTime() == lastMetricTs) {
+        } else if (value.f0.getWindowTime() > lastMetricTs) {
+            lastMetricTs = value.f0.getWindowTime();
             log.error("Clearing {}", ips.size());
 //            ips.forEach((key, m) -> {
 //                AbstractMetricGroup grp = (AbstractMetricGroup) m;
@@ -89,9 +89,7 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
             ips.put(cacheKey, grp);
         }
 
-        log.error("aps_siem_ip_topn {}", value);
+        log.info("aps_siem_ip_topn {}", value);
         grp.gauge("aps_siem_ip_topn", () -> value.f1);
     }
-
-
 }

@@ -1,4 +1,4 @@
-package bcgov.aps.functions;
+package bcgov.aps;
 
 import bcgov.aps.models.KongLogRecord;
 import org.apache.flink.api.java.tuple.Tuple2;
