@@ -1,0 +1,21 @@
+name: GeoServer Image Builds
+
+on:
+  push:
+    branches: [main, images/*]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: "./.github/templates/build"
+        with:
+          image_name: jobs
+          registry: ${{ env.REGISTRY }}
+          registry_repo_name: ${{ secrets.REGISTRY_REPO_NAME }}
+          registry_username: ${{ secrets.REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.REGISTRY_PASSWORD }}
