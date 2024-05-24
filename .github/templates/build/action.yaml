@@ -12,6 +12,8 @@ inputs:
     required: false
   image_name:
     required: true
+  context_path:
+    required: true
 
 runs:
   using: "composite"
@@ -47,8 +49,8 @@ runs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         platforms: linux/amd64,linux/arm64
-        context: docker
-        file: docker/Dockerfile.${{ inputs.image_name }}
+        context: ${{ inputs.context_path }}
+        file: ${{ inputs.context_path }}/Dockerfile
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         push: true

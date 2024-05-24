@@ -1,4 +1,4 @@
-name: GeoServer Image Builds
+name: API Gateway SIEM Image Builds
 
 on:
   push:
@@ -15,6 +15,7 @@ jobs:
       - uses: "./.github/templates/build"
         with:
           image_name: jobs
+          context_path: flink-jobs
           registry: ${{ env.REGISTRY }}
           registry_repo_name: ${{ secrets.REGISTRY_REPO_NAME }}
           registry_username: ${{ secrets.REGISTRY_USERNAME }}
