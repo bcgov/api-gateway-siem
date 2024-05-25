@@ -21,5 +21,5 @@ public class KongLogRecord {
     GWResponse request;
     @JsonProperty(value = "response")
     GWResponse response;
-
+    String namespace;
 }

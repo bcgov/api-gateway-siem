@@ -13,6 +13,8 @@ import lombok.ToString;
 public class MetricsObject {
     public enum HTTP_STATUS { OK, Error, NA };
 
+    String namespace;
+
     @JsonProperty(value = "client_ip")
     String clientIp;
 
