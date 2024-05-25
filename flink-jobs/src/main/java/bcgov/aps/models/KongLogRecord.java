@@ -17,9 +17,8 @@ public class KongLogRecord {
     String requestUriHost;
     @JsonProperty(value = "started_at")
     Long timestamp;
-    @JsonProperty(value = "rwquest")
     GWResponse request;
-    @JsonProperty(value = "response")
     GWResponse response;
+    GWLatencies latencies;
     String namespace;
 }

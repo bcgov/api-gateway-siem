@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 public class MyAssignerWithPunctuatedWatermarks implements AssignerWithPunctuatedWatermarks<Tuple2<KongLogRecord, Integer>> {
     private static final long serialVersionUID =
             -4834111073247835189L;
-    private final long maxTimeLag = 10 * 1000L;
+    private final long maxTimeLag = 0 * 1000L;
 
     @Nullable
     @Override
@@ -21,7 +21,7 @@ public class MyAssignerWithPunctuatedWatermarks implements AssignerWithPunctuate
     @Override
     public long extractTimestamp(Tuple2<KongLogRecord,
             Integer> element, long previousElementTimestamp) {
-        long ts = element.f0.getTimestamp();
+        long ts = element.f0.getTimestamp() + element.f0.getLatencies().getRequest();
         return (ts);
     }
 }
