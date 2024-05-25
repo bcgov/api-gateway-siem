@@ -50,7 +50,6 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
                 .gauge("aps_siem_ip_buffer", new Gauge<Integer>() {
                     @Override
                     public Integer getValue() {
-                        log.info("aps_siem_ip_buffer {}", ips.size());
                         return ips.size();
                     }
                 });
