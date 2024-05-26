@@ -33,14 +33,18 @@ public class KafkaFlinkTopIP {
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.getExecutionEnvironment();
 
-        env.setParallelism(1);
-        env.setMaxParallelism(1);
-        //env.getConfig().setAutoWatermarkInterval(1000);
+        //env.setParallelism(1);
+        //env.setMaxParallelism(1);
+        //env.getConfig().setAutoWatermarkInterval(10000);
 
         final DataStream<String> inputStream;
 
         KafkaSourceBuilder kafka =
                 KafkaSource.<String>builder()
+//                        .setProperty("enable.auto.commit", "false")
+//                        .setProperty("fetch.min.bytes", "1")
+//                        .setProperty("max.poll.records", "1")
+//                        .setProperty("max.poll.interval.ms", "2000")
                     .setBootstrapServers(kafkaBootstrapServers)
                     .setStartingOffsets(OffsetsInitializer.latest())
                     .setValueOnlyDeserializer(new SimpleStringSchema());
@@ -58,12 +62,12 @@ public class KafkaFlinkTopIP {
 
         KafkaSource<String> kafkaSource = kafka.build();
 
-        WatermarkStrategy<String> watermarkStrategy = WatermarkStrategy.forMonotonousTimestamps();//.noWatermarks();//.forBoundedOutOfOrderness(Duration.ofSeconds(10));
+        WatermarkStrategy<String> watermarkStrategy = WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(5));
 
 //        SlidingEventTimeWindows slidingEventTimeWindows =
 //                SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(30));
 
-        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(5));
+        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
 
         inputStream = env.fromSource(kafkaSource,
                 watermarkStrategy, "Kafka Source");
@@ -71,8 +75,8 @@ public class KafkaFlinkTopIP {
         DataStream<Tuple2<String, Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction())
                 .map(new InCounterMapFunction())
-//                .assignTimestampsAndWatermarks(new
-//                        MyAssignerWithPunctuatedWatermarks())
+                .assignTimestampsAndWatermarks(new
+                        MyAssignerWithPunctuatedWatermarks())
                 .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(tumblingEventTimeWindows)
                 .aggregate(new CountAggregateFunction(),

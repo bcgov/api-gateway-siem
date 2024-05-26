@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 public class MyAssignerWithPunctuatedWatermarks implements AssignerWithPunctuatedWatermarks<Tuple2<KongLogRecord, Integer>> {
     private static final long serialVersionUID =
             -4834111073247835189L;
-    private final long maxTimeLag = 0 * 1000L;
+    private final long maxTimeLag = 5 * 1000L;
 
     @Nullable
     @Override
