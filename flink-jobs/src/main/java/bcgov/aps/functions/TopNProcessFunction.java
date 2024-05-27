@@ -1,5 +1,6 @@
 package bcgov.aps.functions;
 
+import bcgov.aps.models.GeoLocInfo;
 import bcgov.aps.models.KongLogRecord;
 import bcgov.aps.models.MetricsObject;
 import bcgov.aps.models.WindowKey;
@@ -91,7 +92,10 @@ public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String,
             MetricsObject met = new MetricsObject();
             met.setClientIp("other");
             met.setWindowTime(context.window().maxTimestamp());
-            met.setStatus(MetricsObject.HTTP_STATUS.NA); // not totally accurate - count includes all requests :(
+            met.setStatus(MetricsObject.HTTP_STATUS.NA);
+            met.setGeo(new GeoLocInfo());
+            met.getGeo().setSuccess(false);
+            met.getGeo().setConnection(new GeoLocInfo.Connection());
             out.collect(new Tuple2<>(met, other));
         }
     }
