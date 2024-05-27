@@ -2,7 +2,7 @@ name: API Gateway SIEM Image Builds
 
 on:
   push:
-    branches: [main, images/*]
+    branches: [main, dev, images/*]
 
 env:
   REGISTRY: ghcr.io
