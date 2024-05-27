@@ -11,8 +11,21 @@ import lombok.ToString;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MetricsObject {
+    public enum HTTP_STATUS { OK, Error, NA };
+
+    String namespace;
+
     @JsonProperty(value = "client_ip")
     String clientIp;
 
-    Long ts;
+    @JsonProperty(value = "request_uri_host")
+    String requestUriHost;
+
+    @JsonProperty(value = "window_ts")
+    Long windowTime;
+
+    @JsonProperty(value = "success")
+    HTTP_STATUS status;
+
+    GeoLocInfo geo;
 }
