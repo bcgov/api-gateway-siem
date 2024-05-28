@@ -126,7 +126,9 @@ public class KafkaFlinkTopIP {
                 SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(10));
 
         DataStream<Tuple2<MetricsObject, Integer>> streamWindow =
-                inputStream.keyBy(value -> AuthWindowKey.getKey(value.getKongLogRecord()))
+                inputStream
+                        .filter(new AuthHashRequestsOnlyFilterFunction())
+                        .keyBy(value -> AuthWindowKey.getKey(value.getKongLogRecord()))
                         .window(slidingEventTimeWindows)
                         .aggregate(new CountLogTupleAggregateFunction(),
                                 new CountWindowFunction()).name("Sliding Window Auth Aggr")
