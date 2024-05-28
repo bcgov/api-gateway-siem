@@ -12,10 +12,12 @@ package bcgov.aps.models;
 public class AuthWindowKey {
     static public String getKey(KongLogRecord rec) {
         String authHash = "1234";
-        return String.format("%s,%s,%s",
+        return String.format("%s,%s,%s,%s,%s",
                 rec.getNamespace(),
                 rec.getRequestUriHost(),
-                rec.getRequest().getHeaders().getAuthHash());
+                rec.getClientIp(),
+                rec.getRequest().getHeaders().getAuthHash(),
+                rec.getAuthenticatedEntity().getId());
     }
 
     static public MetricsObject parseKey(String key) {
@@ -23,7 +25,16 @@ public class AuthWindowKey {
         MetricsObject record = new MetricsObject();
         record.setNamespace(parts[0]);
         record.setRequestUriHost(parts[1]);
-        record.setAuthHash(parts[2]);
+        record.setClientIp(parts[2]);
+        if (!parts[3].equals("null")) {
+            record.setAuthHash(parts[3]);
+            record.setAuthType(MetricsObject.AUTH_TYPE.jwt);
+        }
+        if (!parts[4].equals("null")) {
+            record.setAuthHash(parts[4]);
+            record.setAuthType(MetricsObject.AUTH_TYPE.oidc);
+        }
+
         return record;
     }
 }

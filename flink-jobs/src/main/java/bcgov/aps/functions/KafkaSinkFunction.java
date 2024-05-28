@@ -6,11 +6,17 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.formats.json.JsonSerializationSchema;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonInclude;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.SerializationFeature;
 
 public class KafkaSinkFunction {
 
     static public KafkaSink<Tuple2<MetricsObject, Integer>> build(String kafkaBootstrapServers, String topic) {
-        JsonSerializationSchema<Tuple2<MetricsObject, Integer>> jsonFormat = new JsonSerializationSchema<>();
+        JsonSerializationSchema<Tuple2<MetricsObject, Integer>> jsonFormat = new JsonSerializationSchema<>((
+                () -> new ObjectMapper()
+                        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                        .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)));
 
         return KafkaSink.<Tuple2<MetricsObject, Integer>>builder()
                 .setBootstrapServers(kafkaBootstrapServers)

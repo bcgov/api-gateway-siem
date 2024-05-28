@@ -40,7 +40,8 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
 
     @Override
     public Tuple2<MetricsObject, Integer> map(Tuple2<MetricsObject, Integer> value) {
-        if (value.f0.getClientIp().equals("other")) {
+        if (value.f0.getClientIp() == null ||
+                value.f0.getClientIp().equals("other")) {
             return value;
         }
         try {

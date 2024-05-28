@@ -11,9 +11,10 @@ import lombok.ToString;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GWRequestHeader {
+
     @JsonProperty("host")
     String host;
 
-    @JsonProperty("X-APS-Auth-Hash")
+    @JsonProperty(value = "X-APS-Auth-Hash")
     String authHash;
 }

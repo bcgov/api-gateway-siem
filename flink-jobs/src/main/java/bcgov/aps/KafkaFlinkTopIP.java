@@ -76,24 +76,27 @@ public class KafkaFlinkTopIP {
 
         SingleOutputStreamOperator<Tuple2<KongLogRecord,
                 Integer>> parsedStream = inputStream
-                .process(new JsonParserProcessFunction())
+                .process(new JsonParserProcessFunction()).name("Kafka Input Stream")
                 .assignTimestampsAndWatermarks(new
                         MyAssignerWithPunctuatedWatermarks())
                 .process(new SplitProcessFunction(out1)).name("Split Output");
 
+        GeoLocRichMapFunction geoLocation = new GeoLocRichMapFunction();
+
         buildSlidingAuthDataStream(kafkaBootstrapServers,
                 parsedStream
-                .getSideOutput(out1));
+                .getSideOutput(out1), geoLocation);
 
         buildPrimaryStream(kafkaBootstrapServers,
-                parsedStream);
+                parsedStream, geoLocation);
 
         env.execute("Flink Kafka Top IPs");
     }
 
     static private void buildPrimaryStream(
             String kafkaBootstrapServers,
-            SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream) {
+            SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream,
+            GeoLocRichMapFunction geoLocation) {
         TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
 
         DataStream<Tuple2<String, Integer>> kongLogStream = parsedStream
@@ -101,14 +104,14 @@ public class KafkaFlinkTopIP {
                 .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(tumblingEventTimeWindows)
                 .aggregate(new CountAggregateFunction(),
-                        new CountWindowFunction());
+                        new CountWindowFunction()).name("Tumbling Window Route Aggr");
 
         DataStream<Tuple2<MetricsObject, Integer>> resultStream
                 = kongLogStream
                 .windowAll(tumblingEventTimeWindows)
                 .process(new TopNProcessFunction(10)).name("Top N").setParallelism(1)
                 .map(new FlinkMetricsExposingMapFunction())
-                .map(new GeoLocRichMapFunction());
+                .map(geoLocation);
 
         resultStream.addSink(new Slf4jPrintSinkFunction());
         resultStream.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers, "siem-data"));
@@ -116,7 +119,8 @@ public class KafkaFlinkTopIP {
 
     private void buildSlidingAuthDataStream(
             String kafkaBootstrapServers,
-            DataStream<KongLogTuple> inputStream) {
+            DataStream<KongLogTuple> inputStream,
+            GeoLocRichMapFunction geoLocation) {
 
         SlidingEventTimeWindows slidingEventTimeWindows =
                 SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(10));
@@ -125,10 +129,10 @@ public class KafkaFlinkTopIP {
                 inputStream.keyBy(value -> AuthWindowKey.getKey(value.getKongLogRecord()))
                         .window(slidingEventTimeWindows)
                         .aggregate(new CountLogTupleAggregateFunction(),
-                                new CountWindowFunction()).name("Aggregate by IP")
+                                new CountWindowFunction()).name("Sliding Window Auth Aggr")
                         .windowAll(slidingEventTimeWindows)
                         .process(new TopNAuthProcessFunction(10)).name("Top N").setParallelism(1)
-                        .map(new GeoLocRichMapFunction());
+                        .map(geoLocation);
         streamWindow.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers, "siem-auth"));
     }
 }

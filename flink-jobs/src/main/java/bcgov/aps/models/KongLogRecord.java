@@ -11,6 +11,8 @@ import lombok.ToString;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class KongLogRecord {
+    @JsonProperty(value = "authenticated_entity")
+    AuthenticatedEntity authenticatedEntity;
     @JsonProperty(value = "client_ip")
     String clientIp;
     @JsonProperty(value = "request_uri_host")
@@ -21,4 +23,10 @@ public class KongLogRecord {
     GWResponse response;
     GWLatencies latencies;
     String namespace;
+
+    @Getter
+    @Setter
+    public class AuthenticatedEntity {
+        String id;
+    }
 }
