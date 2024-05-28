@@ -11,6 +11,4 @@ import lombok.ToString;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GWResponse {
     int status;
-
-    GWRequestHeader headers;
 }
