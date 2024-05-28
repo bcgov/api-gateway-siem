@@ -78,7 +78,7 @@ public class KafkaFlinkTopIP {
                 Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction()).name("Kafka Input Stream")
                 .assignTimestampsAndWatermarks(new
-                        MyAssignerWithPunctuatedWatermarks())
+                        MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
                 .process(new SplitProcessFunction(out1)).name("Split Output");
 
         GeoLocRichMapFunction geoLocation = new GeoLocRichMapFunction();

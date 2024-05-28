@@ -17,7 +17,9 @@ public class AuthWindowKey {
                 rec.getRequestUriHost(),
                 rec.getClientIp(),
                 rec.getRequest().getHeaders().getAuthHash(),
-                rec.getAuthenticatedEntity().getId());
+                rec.getAuthenticatedEntity() == null ?
+                        null :
+                        rec.getAuthenticatedEntity().getId());
     }
 
     static public MetricsObject parseKey(String key) {
