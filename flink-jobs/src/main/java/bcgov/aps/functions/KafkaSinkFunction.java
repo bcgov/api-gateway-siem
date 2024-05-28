@@ -8,15 +8,14 @@ import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.formats.json.JsonSerializationSchema;
 
 public class KafkaSinkFunction {
-    static final String SIEM_OUT_TOPIC =  "siem-data";
 
-    static public KafkaSink<Tuple2<MetricsObject, Integer>> build(String kafkaBootstrapServers) {
+    static public KafkaSink<Tuple2<MetricsObject, Integer>> build(String kafkaBootstrapServers, String topic) {
         JsonSerializationSchema<Tuple2<MetricsObject, Integer>> jsonFormat = new JsonSerializationSchema<>();
 
         return KafkaSink.<Tuple2<MetricsObject, Integer>>builder()
                 .setBootstrapServers(kafkaBootstrapServers)
                 .setRecordSerializer(KafkaRecordSerializationSchema.builder()
-                        .setTopic(SIEM_OUT_TOPIC)
+                        .setTopic(topic)
                         .setValueSerializationSchema(jsonFormat)
                         .build()
                 )

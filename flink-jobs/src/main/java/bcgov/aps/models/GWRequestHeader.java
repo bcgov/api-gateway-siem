@@ -13,4 +13,7 @@ import lombok.ToString;
 public class GWRequestHeader {
     @JsonProperty("host")
     String host;
+
+    @JsonProperty("X-APS-Auth-Hash")
+    String authHash;
 }

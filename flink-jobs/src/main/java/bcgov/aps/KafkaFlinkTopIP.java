@@ -1,8 +1,7 @@
 package bcgov.aps;
 
 import bcgov.aps.functions.*;
-import bcgov.aps.models.MetricsObject;
-import bcgov.aps.models.WindowKey;
+import bcgov.aps.models.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -12,9 +11,11 @@ import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.util.OutputTag;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -23,31 +24,31 @@ import java.util.regex.Pattern;
 
 @Slf4j
 public class KafkaFlinkTopIP {
+
     public static void main(String[] args) throws Exception {
+        new KafkaFlinkTopIP().process();
+    }
+
+    private void process() throws Exception {
 
         String kafkaBootstrapServers = System.getenv(
                 "KAFKA_BOOTSTRAP_SERVERS");
         String kafkaTopics = System.getenv("KAFKA_TOPICS");
-        String kafkaTopicPattern = System.getenv("KAFKA_TOPIC_PATTERN");
+        String kafkaTopicPattern = System.getenv(
+                "KAFKA_TOPIC_PATTERN");
 
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.getExecutionEnvironment();
 
-        //env.setParallelism(1);
-        //env.setMaxParallelism(1);
-        //env.getConfig().setAutoWatermarkInterval(10000);
-
-        final DataStream<String> inputStream;
-
         KafkaSourceBuilder kafka =
                 KafkaSource.<String>builder()
-//                        .setProperty("enable.auto.commit", "false")
-//                        .setProperty("fetch.min.bytes", "1")
-//                        .setProperty("max.poll.records", "1")
-//                        .setProperty("max.poll.interval.ms", "2000")
-                    .setBootstrapServers(kafkaBootstrapServers)
-                    .setStartingOffsets(OffsetsInitializer.latest())
-                    .setValueOnlyDeserializer(new SimpleStringSchema());
+                        .setGroupId("siem")
+                        .setProperty("flink.partition" +
+                                "-discovery" +
+                                ".interval-millis", "30000")
+                        .setBootstrapServers(kafkaBootstrapServers)
+                        .setStartingOffsets(OffsetsInitializer.latest())
+                        .setValueOnlyDeserializer(new SimpleStringSchema());
 
         if (StringUtils.isNotBlank(kafkaTopics)) {
             log.info("Topics {}", StringUtils.join(
@@ -62,37 +63,72 @@ public class KafkaFlinkTopIP {
 
         KafkaSource<String> kafkaSource = kafka.build();
 
-        WatermarkStrategy<String> watermarkStrategy = WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(5));
+        WatermarkStrategy<String> watermarkStrategy =
+                WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(5));
 
-//        SlidingEventTimeWindows slidingEventTimeWindows =
-//                SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(30));
+        final DataStream<String> inputStream =
+                env.fromSource(kafkaSource,
+                        watermarkStrategy, "Kafka Source");
 
-        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+        final OutputTag<KongLogTuple> out1
+                = new OutputTag<KongLogTuple>("out-1") {
+        };
 
-        inputStream = env.fromSource(kafkaSource,
-                watermarkStrategy, "Kafka Source");
-
-        DataStream<Tuple2<String, Integer>> parsedStream = inputStream
+        SingleOutputStreamOperator<Tuple2<KongLogRecord,
+                Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction())
-                .map(new InCounterMapFunction())
                 .assignTimestampsAndWatermarks(new
                         MyAssignerWithPunctuatedWatermarks())
+                .process(new SplitProcessFunction(out1)).name("Split Output");
+
+        buildSlidingAuthDataStream(kafkaBootstrapServers,
+                parsedStream
+                .getSideOutput(out1));
+
+        buildPrimaryStream(kafkaBootstrapServers,
+                parsedStream);
+
+        env.execute("Flink Kafka Top IPs");
+    }
+
+    static private void buildPrimaryStream(
+            String kafkaBootstrapServers,
+            SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream) {
+        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+
+        DataStream<Tuple2<String, Integer>> kongLogStream = parsedStream
+                .map(new InCounterMapFunction())
                 .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(tumblingEventTimeWindows)
                 .aggregate(new CountAggregateFunction(),
                         new CountWindowFunction());
 
         DataStream<Tuple2<MetricsObject, Integer>> resultStream
-                = parsedStream
+                = kongLogStream
                 .windowAll(tumblingEventTimeWindows)
-                .process(new TopNProcessFunction(10)).setParallelism(1)
+                .process(new TopNProcessFunction(10)).name("Top N").setParallelism(1)
                 .map(new FlinkMetricsExposingMapFunction())
                 .map(new GeoLocRichMapFunction());
 
         resultStream.addSink(new Slf4jPrintSinkFunction());
+        resultStream.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers, "siem-data"));
+    }
 
-        resultStream.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers));
+    private void buildSlidingAuthDataStream(
+            String kafkaBootstrapServers,
+            DataStream<KongLogTuple> inputStream) {
 
-        env.execute("Flink Kafka Top IPs");
+        SlidingEventTimeWindows slidingEventTimeWindows =
+                SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(10));
+
+        DataStream<Tuple2<MetricsObject, Integer>> streamWindow =
+                inputStream.keyBy(value -> AuthWindowKey.getKey(value.getKongLogRecord()))
+                        .window(slidingEventTimeWindows)
+                        .aggregate(new CountLogTupleAggregateFunction(),
+                                new CountWindowFunction()).name("Aggregate by IP")
+                        .windowAll(slidingEventTimeWindows)
+                        .process(new TopNAuthProcessFunction(10)).name("Top N").setParallelism(1)
+                        .map(new GeoLocRichMapFunction());
+        streamWindow.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers, "siem-auth"));
     }
 }

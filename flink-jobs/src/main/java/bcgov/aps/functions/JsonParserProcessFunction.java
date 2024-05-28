@@ -1,6 +1,7 @@
 package bcgov.aps.functions;
 
 import bcgov.aps.JsonUtils;
+import bcgov.aps.KafkaFlinkTopIP;
 import bcgov.aps.models.KongLogRecord;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +23,7 @@ public class JsonParserProcessFunction extends ProcessFunction<String, Tuple2<Ko
     public void processElement(String value,
                                Context ctx,
                                Collector<Tuple2<KongLogRecord, Integer>> out) {
+        KongLogMapFunction d = new KongLogMapFunction();
         try {
             KongLogRecord jsonNode =
                     objectMapper.readValue(value,

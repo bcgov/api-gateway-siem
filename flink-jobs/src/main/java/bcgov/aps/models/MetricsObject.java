@@ -11,7 +11,7 @@ import lombok.ToString;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MetricsObject {
-    public enum HTTP_STATUS { OK, Error, NA };
+    public enum HTTP_STATUS { OK, Error, RateLimited, NA };
 
     String namespace;
 
@@ -26,6 +26,8 @@ public class MetricsObject {
 
     @JsonProperty(value = "success")
     HTTP_STATUS status;
+
+    String authHash;
 
     GeoLocInfo geo;
 }

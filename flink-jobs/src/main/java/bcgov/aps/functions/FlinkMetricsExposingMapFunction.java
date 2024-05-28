@@ -68,7 +68,7 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
         } else if (value.f0.getWindowTime() == lastMetricTs) {
         } else if (value.f0.getWindowTime() > lastMetricTs) {
             lastMetricTs = value.f0.getWindowTime();
-            log.error("Clearing {}", ips.size());
+            log.info("Clearing {}", ips.size());
 //            ips.forEach((key, m) -> {
 //                AbstractMetricGroup grp = (AbstractMetricGroup) m;
 //                grp.close();
