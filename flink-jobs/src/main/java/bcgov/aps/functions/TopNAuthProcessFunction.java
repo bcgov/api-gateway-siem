@@ -40,7 +40,7 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
         for (Tuple2<String, Integer> element :
                 elements) {
             ipCount++;
-            log.info("Element {}", element);
+            log.debug("Element {}", element);
             if (element.f1 == 0) {
                 log.warn("Element has zero so skip it. {}", element.f0);
                 continue;
@@ -55,7 +55,7 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
             }
             requestCount += element.f1;
         }
-        log.info("TopNAuth {} {} | {} -> {} : {}", ipCount, topN.size(), context.window().getStart(), context.window().getEnd(), context.window().maxTimestamp());
+        log.debug("TopNAuth {} {} | {} -> {} : {}", ipCount, topN.size(), context.window().getStart(), context.window().getEnd(), context.window().maxTimestamp());
 
         for (Tuple2<String, Integer> entry :
                 topN) {

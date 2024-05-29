@@ -10,10 +10,10 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonInc
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.SerializationFeature;
 
-public class KafkaSinkFunction {
+public class KafkaSinkFunction<T> {
 
-    static public KafkaSink<Tuple2<MetricsObject, Integer>> build(String kafkaBootstrapServers, String topic) {
-        JsonSerializationSchema<Tuple2<MetricsObject, Integer>> jsonFormat = new JsonSerializationSchema<>((
+    static public KafkaSink build(String kafkaBootstrapServers, String topic) {
+        JsonSerializationSchema jsonFormat = new JsonSerializationSchema<>((
                 () -> new ObjectMapper()
                         .setSerializationInclusion(JsonInclude.Include.NON_NULL)
                         .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)));

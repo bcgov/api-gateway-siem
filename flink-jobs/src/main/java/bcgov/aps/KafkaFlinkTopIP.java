@@ -48,9 +48,7 @@ public class KafkaFlinkTopIP {
         KafkaSourceBuilder kafka =
                 KafkaSource.<String>builder()
                         .setGroupId("siem")
-                        .setProperty("flink.partition" +
-                                "-discovery" +
-                                ".interval-millis", "30000")
+                        .setProperty("partition.discovery.interval.ms", "30000")
                         .setBootstrapServers(kafkaBootstrapServers)
                         .setStartingOffsets(OffsetsInitializer.latest())
                         .setValueOnlyDeserializer(new SimpleStringSchema());
@@ -103,20 +101,26 @@ public class KafkaFlinkTopIP {
             String kafkaBootstrapServers,
             SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream,
             GeoLocRichMapFunction geoLocation) {
+        final OutputTag<Tuple2<KongLogRecord, Integer>> lateOutputTag =
+                new OutputTag<Tuple2<KongLogRecord,
+                        Integer>>("missed-window") {
+                };
+
         TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
 
-        DataStream<Tuple2<String, Integer>>
-                kongLogStream = parsedStream
+        SingleOutputStreamOperator<Tuple2<String, Integer>>
+                streamWindow = parsedStream
                 .map(new InCounterMapFunction())
                 .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(tumblingEventTimeWindows)
+                .sideOutputLateData(lateOutputTag)
                 .aggregate(new CountAggregateFunction(),
                         new CountWindowFunction()).name
                         ("Tumbling Window Route Aggr");
 
         DataStream<Tuple2<MetricsObject, Integer>>
                 resultStream
-                = kongLogStream
+                = streamWindow
                 .windowAll(tumblingEventTimeWindows)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
@@ -128,6 +132,16 @@ public class KafkaFlinkTopIP {
                 ());
         resultStream.sinkTo(KafkaSinkFunction.build
                 (kafkaBootstrapServers, "siem-data"));
+
+        DataStream<Tuple2<KongLogRecord, Integer>> lateStream =
+                streamWindow
+                        .getSideOutput(lateOutputTag);
+//                        .assignTimestampsAndWatermarks(
+//                                WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+//                                .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()));
+
+        lateStream.sinkTo(KafkaSinkFunction.build
+                (kafkaBootstrapServers, "siem-late"));
     }
 
     private void buildSlidingAuthDataStream(
@@ -146,7 +160,7 @@ public class KafkaFlinkTopIP {
                 Integer>> streamWindow =
                 inputStream
                         .filter(new
-                        AuthHashRequestsOnlyFilterFunction())
+                                AuthHashRequestsOnlyFilterFunction())
                         .keyBy(value -> AuthWindowKey.getKey(value.getKongLogRecord()))
                         .window(slidingEventTimeWindows)
                         .sideOutputLateData(lateOutputTag)
@@ -160,7 +174,6 @@ public class KafkaFlinkTopIP {
                 .apply(new AllWindowFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow>() {
                     @Override
                     public void apply(TimeWindow timeWindow, Iterable<Tuple2<String, Integer>> values, Collector<Tuple2<String, Integer>> out) throws Exception {
-
                         Map<String, Integer> resultMap =
                                 new HashMap<>();
                         for (Tuple2<String, Integer> value : values) {

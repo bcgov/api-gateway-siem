@@ -79,7 +79,7 @@ public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String,
         totalIps = ipCount;
         totalRequests = requestCount;
 
-        log.info("TopNSize {}", topN.size());
+        log.debug("TopNSize {}", topN.size());
 
         for (Tuple2<String, Integer> entry :
                 topN) {
