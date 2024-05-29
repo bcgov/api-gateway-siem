@@ -7,6 +7,8 @@ import java.io.IOException;
 public class NullGeoLoc implements GeoLocService {
     @Override
     public GeoLocInfo fetchGeoLocationInformation(String ip) throws IOException {
-        return new GeoLocInfo();
+        GeoLocInfo info = new GeoLocInfo();
+        info.setConnection(new GeoLocInfo.Connection());
+        return info;
     }
 }

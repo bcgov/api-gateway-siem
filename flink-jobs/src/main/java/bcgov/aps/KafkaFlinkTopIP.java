@@ -111,6 +111,9 @@ public class KafkaFlinkTopIP {
         SingleOutputStreamOperator<Tuple2<String, Integer>>
                 streamWindow = parsedStream
                 .map(new InCounterMapFunction())
+                .assignTimestampsAndWatermarks(
+                    WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(0))
+                    .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
                 .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(tumblingEventTimeWindows)
                 .sideOutputLateData(lateOutputTag)
@@ -131,17 +134,14 @@ public class KafkaFlinkTopIP {
         resultStream.addSink(new Slf4jPrintSinkFunction
                 ());
         resultStream.sinkTo(KafkaSinkFunction.build
-                (kafkaBootstrapServers, "siem-data"));
+                (kafkaBootstrapServers, "siem-data")).name("Kafka Metrics Topic");
 
         DataStream<Tuple2<KongLogRecord, Integer>> lateStream =
                 streamWindow
                         .getSideOutput(lateOutputTag);
-//                        .assignTimestampsAndWatermarks(
-//                                WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-//                                .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()));
 
         lateStream.sinkTo(KafkaSinkFunction.build
-                (kafkaBootstrapServers, "siem-late"));
+                (kafkaBootstrapServers, "siem-late")).name("Kafka Late Topic");
     }
 
     private void buildSlidingAuthDataStream(
