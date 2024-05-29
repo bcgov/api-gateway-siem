@@ -88,9 +88,9 @@ public class KafkaFlinkTopIP {
         GeoLocRichMapFunction geoLocation =
                 new GeoLocRichMapFunction();
 
-        buildSlidingAuthDataStream(kafkaBootstrapServers,
-                parsedStream
-                        .getSideOutput(out1), geoLocation);
+//        buildSlidingAuthDataStream(kafkaBootstrapServers,
+//                parsedStream
+//                        .getSideOutput(out1), geoLocation);
 
         buildPrimaryStream(kafkaBootstrapServers,
                 parsedStream, geoLocation);
