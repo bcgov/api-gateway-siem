@@ -11,6 +11,11 @@ import java.util.Date;
 public class Slf4jPrintSinkFunction implements SinkFunction<Tuple2<MetricsObject, Integer>> {
 
     private long lastTs;
+    private long sinkTs;
+
+    private long counter;
+
+    private long sinkTotal;
 
 
     public Slf4jPrintSinkFunction() {
@@ -20,7 +25,13 @@ public class Slf4jPrintSinkFunction implements SinkFunction<Tuple2<MetricsObject
 
     @Override
     public void invoke(Tuple2<MetricsObject, Integer> value, Context context) {
-        log.info("Sink: [{}] {} : {}",
-                context.timestamp() - lastTs, value.f0.getClientIp(), value.f1);
+        counter += value.f1;
+        if (context.timestamp() != sinkTs) {
+            sinkTotal = 0;
+            sinkTs = context.timestamp();
+        }
+        sinkTotal += value.f1;
+        log.info("Sink: [{}] {} {} {} : {}",
+                context.timestamp() - lastTs, sinkTotal, counter, value.f0.getClientIp(), value.f1);
     }
 }

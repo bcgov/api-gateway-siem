@@ -81,8 +81,8 @@ public class KafkaFlinkTopIP {
         SingleOutputStreamOperator<Tuple2<KongLogRecord,
                 Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction()).name("Kafka Input Stream")
-                .assignTimestampsAndWatermarks(new
-                        MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
+//                .assignTimestampsAndWatermarks(new
+//                        MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
                 .process(new SplitProcessFunction(out1)).name("Split Output");
 
         GeoLocRichMapFunction geoLocation =

@@ -43,12 +43,18 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
     public Tuple2<MetricsObject, Integer> map(Tuple2<MetricsObject, Integer> value) {
         if (value.f0.getClientIp() == null ||
                 value.f0.getClientIp().equals("other")) {
+            GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo();
+            loc.setCountry("MissingIP");
+            value.f0.setGeo(GeoLocInfo.newEmptyGeoInfo());
             return value;
         }
         try {
             value.f0.setGeo(ips.get(value.f0.getClientIp()));
         } catch (ExecutionException e) {
             log.error("Execution Exception {}", e.getMessage());
+            GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo();
+            loc.setCountry("Err");
+            value.f0.setGeo(GeoLocInfo.newEmptyGeoInfo());
         }
         return value;
     }
