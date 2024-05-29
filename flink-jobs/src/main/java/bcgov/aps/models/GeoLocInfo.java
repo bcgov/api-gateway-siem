@@ -2,9 +2,11 @@ package bcgov.aps.models;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString
 public class GeoLocInfo {
     boolean success;
     String country;
@@ -14,6 +16,7 @@ public class GeoLocInfo {
 
     @Getter
     @Setter
+    @ToString
     static public class Connection {
         String org;
         String isp;

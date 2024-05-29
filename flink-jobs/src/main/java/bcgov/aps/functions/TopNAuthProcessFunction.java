@@ -40,6 +40,11 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
         for (Tuple2<String, Integer> element :
                 elements) {
             ipCount++;
+            log.info("Element {}", element);
+            if (element.f1 == 0) {
+                log.warn("Element has zero so skip it. {}", element.f0);
+                continue;
+            }
             topN.add(element);
             if (topN.size() > topSize) {
                 Tuple2<String, Integer> kickedOff
@@ -50,12 +55,12 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
             }
             requestCount += element.f1;
         }
-        log.info("TopNAuth {}", topN.size());
+        log.info("TopNAuth {} {} | {} -> {} : {}", ipCount, topN.size(), context.window().getStart(), context.window().getEnd(), context.window().maxTimestamp());
 
         for (Tuple2<String, Integer> entry :
                 topN) {
             MetricsObject met = AuthWindowKey.parseKey(entry.f0);
-            met.setWindowTime(context.window().maxTimestamp());
+            met.setWindowTime(context.window().getEnd());
             out.collect(new Tuple2<>(met, entry.f1));
         }
     }

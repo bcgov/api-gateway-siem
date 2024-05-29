@@ -26,6 +26,7 @@ public class KongLogRecord {
 
     @Getter
     @Setter
+    @ToString
     public class AuthenticatedEntity {
         String id;
     }

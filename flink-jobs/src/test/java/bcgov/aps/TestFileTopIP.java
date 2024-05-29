@@ -10,11 +10,13 @@ import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.time.Duration;
 
 public class TestFileTopIP {
     private static final Logger LOG =
@@ -58,24 +60,26 @@ public class TestFileTopIP {
                 env.fromSource(fileSource,
                         WatermarkStrategy.forMonotonousTimestamps(), "whatever");
 
-        DataStream<Tuple2<String, Integer>> parsedStream = inputStream
+        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+
+        inputStream
                 .process(new JsonParserProcessFunction())
                 .assignTimestampsAndWatermarks(new
                  MyAssignerWithPunctuatedWatermarks())
                 .keyBy(value -> value.f0.getClientIp())
-                .window(SlidingEventTimeWindows.of(Time.seconds(30), Time.seconds(30)))
-                .aggregate(new CountAggregateFunction(),
-                        new CountWindowFunction());
-
-        DataStream<Tuple2<MetricsObject, Integer>> resultStream
-                = parsedStream
-                .windowAll(SlidingEventTimeWindows.of(Time.seconds(30), Time.seconds(30)))
-                .process(new TopNProcessFunction(10))
-                .map(new FlinkMetricsExposingMapFunction());
-
-        resultStream.addSink(new Slf4jPrintSinkFunction());
-
-        resultStream.addSink(new AssertSinkFunction<>());
+                .window(tumblingEventTimeWindows);
+//                .aggregate(new CountAggregateFunction(),
+//                        new CountWindowFunction());
+//
+//        DataStream<Tuple2<MetricsObject, Integer>> resultStream
+//                = parsedStream
+//                .windowAll(SlidingEventTimeWindows.of(Time.seconds(30), Time.seconds(30)))
+//                .process(new TopNProcessFunction(10))
+//                .map(new FlinkMetricsExposingMapFunction());
+//
+//        resultStream.addSink(new Slf4jPrintSinkFunction());
+//
+//        resultStream.addSink(new AssertSinkFunction<>());
 
         env.execute("Flink Kafka Top IPs");
     }

@@ -2,6 +2,7 @@ package bcgov.aps.functions;
 
 import bcgov.aps.geoloc.GeoLocService;
 import bcgov.aps.geoloc.IPWhoVendor;
+import bcgov.aps.geoloc.NullGeoLoc;
 import bcgov.aps.models.GeoLocInfo;
 import bcgov.aps.models.MetricsObject;
 import com.google.common.cache.CacheBuilder;

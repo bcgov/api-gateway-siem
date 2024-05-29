@@ -1,0 +1,1 @@
+{"client_ip": "0.1.2.3", "started_at":  12321321321, "namespace": "abc", "authenticated_entity": { "id": "" }, "latencies": { "request": 20 }, "request": { "headers": { "host": "" } }, "response":  {"status": 304}}

@@ -6,6 +6,7 @@ import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks
 import org.apache.flink.streaming.api.watermark.Watermark;
 
 import javax.annotation.Nullable;
+import java.util.Date;
 
 public class MyAssignerWithPunctuatedWatermarks implements AssignerWithPunctuatedWatermarks<Tuple2<KongLogRecord, Integer>> {
     private static final long serialVersionUID =

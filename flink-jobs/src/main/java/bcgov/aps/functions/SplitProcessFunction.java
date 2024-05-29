@@ -14,13 +14,10 @@ import org.apache.flink.util.OutputTag;
 @Slf4j
 public class SplitProcessFunction extends ProcessFunction<Tuple2<KongLogRecord, Integer>, Tuple2<KongLogRecord, Integer>> {
 
-    private final ObjectMapper objectMapper;
-
     private final OutputTag<KongLogTuple> side;
 
 
     public SplitProcessFunction(OutputTag<KongLogTuple> side) {
-        objectMapper = JsonUtils.getObjectMapper();
         this.side = side;
     }
 

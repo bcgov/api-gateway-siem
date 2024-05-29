@@ -15,8 +15,9 @@ public class CountWindowFunction implements WindowFunction<Integer, Tuple2<Strin
                       Collector<Tuple2<String,
                               Integer>> out) {
         int count = input.iterator().next();
-        log.debug("CountWindow {} {} {}",
-                window.maxTimestamp(), key, count);
+
+        log.debug("CountWindow {} {} {} {}",
+                input.iterator().hasNext(), window.maxTimestamp(), key, count);
         out.collect(new Tuple2<>(key, count));
     }
 }
