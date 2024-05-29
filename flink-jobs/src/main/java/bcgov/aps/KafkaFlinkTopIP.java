@@ -16,6 +16,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
@@ -106,7 +107,8 @@ public class KafkaFlinkTopIP {
                         Integer>>("missed-window") {
                 };
 
-        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+        //TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+        TumblingProcessingTimeWindows processingTimeWindows = TumblingProcessingTimeWindows.of(Duration.ofSeconds(15));
 
         SingleOutputStreamOperator<Tuple2<String, Integer>>
                 streamWindow = parsedStream
@@ -115,7 +117,7 @@ public class KafkaFlinkTopIP {
 //                    WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(0))
 //                    .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
                 .keyBy(value -> WindowKey.getKey(value.f0))
-                .window(tumblingEventTimeWindows)
+                .window(processingTimeWindows)
                 .sideOutputLateData(lateOutputTag)
                 .aggregate(new CountAggregateFunction(),
                         new CountWindowFunction()).name
@@ -124,7 +126,7 @@ public class KafkaFlinkTopIP {
         DataStream<Tuple2<MetricsObject, Integer>>
                 resultStream
                 = streamWindow
-                .windowAll(tumblingEventTimeWindows)
+                .windowAll(processingTimeWindows)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
                 .map(new
