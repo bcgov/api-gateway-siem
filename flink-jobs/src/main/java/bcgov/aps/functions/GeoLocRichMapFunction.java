@@ -45,7 +45,7 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
                 value.f0.getClientIp().equals("other")) {
             GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo();
             loc.setCountry("MissingIP");
-            value.f0.setGeo(GeoLocInfo.newEmptyGeoInfo());
+            value.f0.setGeo(loc);
             return value;
         }
         try {
@@ -54,7 +54,7 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
             log.error("Execution Exception {}", e.getMessage());
             GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo();
             loc.setCountry("Err");
-            value.f0.setGeo(GeoLocInfo.newEmptyGeoInfo());
+            value.f0.setGeo(loc);
         }
         return value;
     }
