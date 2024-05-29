@@ -24,4 +24,15 @@ public class GeoLocInfo {
     }
 
     Connection connection;
+
+    static public GeoLocInfo newEmptyGeoInfo() {
+        GeoLocInfo geo = new GeoLocInfo();
+        geo.setSuccess(false);
+        geo.setCountry("-");
+        geo.setRegion("-");
+        geo.setConnection(new GeoLocInfo.Connection());
+        geo.getConnection().setIsp("-");
+        geo.getConnection().setOrg("-");
+        return geo;
+    }
 }

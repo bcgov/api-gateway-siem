@@ -111,9 +111,9 @@ public class KafkaFlinkTopIP {
         SingleOutputStreamOperator<Tuple2<String, Integer>>
                 streamWindow = parsedStream
                 .map(new InCounterMapFunction())
-//                .assignTimestampsAndWatermarks(
-//                    WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(0))
-//                    .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
+                .assignTimestampsAndWatermarks(
+                    WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(0))
+                    .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
                 .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(tumblingEventTimeWindows)
                 .sideOutputLateData(lateOutputTag)
