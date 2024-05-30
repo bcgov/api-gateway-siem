@@ -164,6 +164,9 @@ public class KafkaFlinkTopIP {
                 inputStream
                         .filter(new
                                 AuthHashRequestsOnlyFilterFunction())
+                        .assignTimestampsAndWatermarks(
+                            WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
+                            .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
                         .keyBy(value -> AuthWindowKey.getKey(value.getKongLogRecord()))
                         .window(slidingEventTimeWindows)
                         .sideOutputLateData(lateOutputTag)
