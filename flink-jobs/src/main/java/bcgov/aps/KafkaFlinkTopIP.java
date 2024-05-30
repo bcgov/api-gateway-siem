@@ -118,7 +118,7 @@ public class KafkaFlinkTopIP {
 //                    .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
                 .keyBy(value -> WindowKey.getKey(value.f0))
                 .window(processingTimeWindows)
-                .sideOutputLateData(lateOutputTag)
+                //.sideOutputLateData(lateOutputTag)
                 .aggregate(new CountAggregateFunction(),
                         new CountWindowFunction()).name
                         ("Tumbling Window Route Aggr");
@@ -129,8 +129,8 @@ public class KafkaFlinkTopIP {
                 .windowAll(processingTimeWindows)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
-                .map(new
-                        FlinkMetricsExposingMapFunction())
+                //.map(new
+                //        FlinkMetricsExposingMapFunction())
                 .map(geoLocation);
 
         resultStream.addSink(new Slf4jPrintSinkFunction
@@ -138,12 +138,12 @@ public class KafkaFlinkTopIP {
         resultStream.sinkTo(KafkaSinkFunction.build
                 (kafkaBootstrapServers, "siem-data")).name("Kafka Metrics Topic");
 
-        DataStream<Tuple2<KongLogRecord, Integer>> lateStream =
-                streamWindow
-                        .getSideOutput(lateOutputTag);
-
-        lateStream.sinkTo(KafkaSinkFunction.build
-                (kafkaBootstrapServers, "siem-late")).name("Kafka Late Topic");
+//        DataStream<Tuple2<KongLogRecord, Integer>> lateStream =
+//                streamWindow
+//                        .getSideOutput(lateOutputTag);
+//
+//        lateStream.sinkTo(KafkaSinkFunction.build
+//                (kafkaBootstrapServers, "siem-late")).name("Kafka Late Topic");
     }
 
     private void buildSlidingAuthDataStream(

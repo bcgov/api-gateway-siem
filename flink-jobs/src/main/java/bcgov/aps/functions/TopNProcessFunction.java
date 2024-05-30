@@ -20,9 +20,9 @@ import java.util.PriorityQueue;
 public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String, Integer>, Tuple2<MetricsObject, Integer>, TimeWindow> {
     private final int topSize;
 
-    private int totalIps;
+    private transient int totalIps;
 
-    private int totalRequests;
+    private transient int totalRequests;
 
     @Override
     public void open(Configuration parameters) throws Exception {
