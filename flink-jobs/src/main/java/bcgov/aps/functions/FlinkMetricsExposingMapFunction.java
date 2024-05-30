@@ -28,7 +28,6 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
     private Map<String, MetricGroup> ips;
 
     private transient int valueToExpose;
-    private transient Counter customCounter1;
 
     @Override
     public void open(Configuration parameters) {
@@ -65,10 +64,11 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
         if (value == null || value.f0 == null || lastMetricTs == null) {
             lastMetricTs = value.f0.getWindowTime();
             metricGroup = parentMetricGroup.addGroup("ts", lastMetricTs.toString());
+            log.info("topngauge adding new ", lastMetricTs);
         } else if (value.f0.getWindowTime() == lastMetricTs) {
         } else if (value.f0.getWindowTime() > lastMetricTs) {
             lastMetricTs = value.f0.getWindowTime();
-            log.debug("Clearing {}", ips.size());
+            log.info("topngauge Clearing {} and adding new ", ips.size(), lastMetricTs);
 //            ips.forEach((key, m) -> {
 //                AbstractMetricGroup grp = (AbstractMetricGroup) m;
 //                grp.close();
@@ -77,7 +77,9 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
             metricGroup = parentMetricGroup.addGroup("ts", lastMetricTs.toString());
             ips.clear();
         }
-        setIpTopNGauge(value);
+        if (value != null) {
+            setIpTopNGauge(value);
+        }
         return value;
     }
 
@@ -85,6 +87,7 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
         String cacheKey = value.f0.getCacheKey();
         MetricGroup grp = ips.get(cacheKey);
         if (grp == null) {
+            log.info("topngauge ADD {}", cacheKey);
             grp = metricGroup
                     .addGroup("client_ip", value.f0.getClientIp())
                     .addGroup("geo_conn_isp", value.f0.getGeo().getConnection().getIsp())
