@@ -37,5 +37,5 @@ public class MetricsObject {
 
     GeoLocInfo geo;
 
-    transient String cacheKey;
+    String cacheKey;
 }
