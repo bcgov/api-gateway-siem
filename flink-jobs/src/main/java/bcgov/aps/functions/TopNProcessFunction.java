@@ -91,6 +91,7 @@ public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String,
         if (other != 0) {
             MetricsObject met = new MetricsObject();
             met.setClientIp("other");
+            met.setCacheKey("other");
             met.setRequestUriHost("-");
             met.setNamespace("-");
             met.setWindowTime(context.window().maxTimestamp());
