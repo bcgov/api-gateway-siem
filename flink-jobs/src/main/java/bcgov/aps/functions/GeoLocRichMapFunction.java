@@ -58,6 +58,4 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
         }
         return value;
     }
-
-
 }

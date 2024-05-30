@@ -82,11 +82,17 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
     }
 
     private void setIpTopNGauge (Tuple2<MetricsObject, Integer> value) {
-        String cacheKey = value.f0.getClientIp();
+        String cacheKey = value.f0.getCacheKey();
         MetricGroup grp = ips.get(cacheKey);
         if (grp == null) {
             grp = metricGroup
-                    .addGroup("ip", value.f0.getClientIp());
+                    .addGroup("client_ip", value.f0.getClientIp())
+                    .addGroup("geo_conn_isp", value.f0.getGeo().getConnection().getIsp())
+                    .addGroup("geo_conn_org", value.f0.getGeo().getConnection().getOrg())
+                    .addGroup("geo_country", value.f0.getGeo().getCountry())
+                    .addGroup("http_status", value.f0.getStatus().name())
+                    .addGroup("namespace", value.f0.getNamespace())
+                    .addGroup("request_uri_host", value.f0.getRequestUriHost());
             ips.put(cacheKey, grp);
         }
 

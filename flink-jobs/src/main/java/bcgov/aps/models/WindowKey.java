@@ -14,6 +14,7 @@ public class WindowKey {
         record.setRequestUriHost(parts[1]);
         record.setClientIp(parts[2]);
         record.setStatus(Boolean.parseBoolean(parts[3]) ? MetricsObject.HTTP_STATUS.OK: MetricsObject.HTTP_STATUS.Error);
+        record.setCacheKey(key);
         return record;
     }
 }
