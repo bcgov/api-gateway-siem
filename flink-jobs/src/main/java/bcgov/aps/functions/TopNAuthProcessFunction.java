@@ -84,6 +84,9 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
     private void processLastWindow(TimeWindow window,
                                    PriorityQueue<Tuple2<String, Integer>> topN, Collector<Tuple2<MetricsObject,
             Integer>> out) {
+        if (lastMetricTs == null) {
+            lastMetricTs = Long.valueOf(0L);
+        }
         if (lastMetricTs == window.getEnd()) {
             log.warn("[processLastWindow] not expecting " +
                     "end window to appear twice!");
