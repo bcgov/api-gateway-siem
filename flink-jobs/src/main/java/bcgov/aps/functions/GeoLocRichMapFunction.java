@@ -26,7 +26,7 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
 
     @Override
     public void open(Configuration parameters) {
-        geoLocService = new NullGeoLoc(); //IPWhoVendor();
+        geoLocService = GeoLocService.factory(GeoLocService.VENDOR.NULL);
         ips = CacheBuilder.newBuilder()
                 .maximumSize(1000)
                 .expireAfterWrite(60, TimeUnit.MINUTES)

@@ -10,23 +10,17 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.metrics.Counter;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
-import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -162,12 +156,12 @@ public class KafkaFlinkTopIP {
         SingleOutputStreamOperator<Tuple2<String,
                 Integer>> streamWindow =
                 inputStream
-                        .filter(new
-                                AuthHashRequestsOnlyFilterFunction())
+//                        .filter(new
+//                                AuthHashRequestsOnlyFilterFunction())
                         .assignTimestampsAndWatermarks(
                             WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
                             .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
-                        .keyBy(value -> AuthWindowKey.getKey(value.getKongLogRecord()))
+                        .keyBy(value -> AuthSubWindowKey.getKey(value.getKongLogRecord()))
                         .window(slidingEventTimeWindows)
                         .sideOutputLateData(lateOutputTag)
                         .aggregate(new CountLogTupleAggregateFunction(),
@@ -177,20 +171,7 @@ public class KafkaFlinkTopIP {
 
         DataStream<Tuple2<MetricsObject, Integer>> allWindow = streamWindow
                 .windowAll(tumblingEventTimeWindows)
-                .apply(new AllWindowFunction<Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow>() {
-                    @Override
-                    public void apply(TimeWindow timeWindow, Iterable<Tuple2<String, Integer>> values, Collector<Tuple2<String, Integer>> out) throws Exception {
-                        Map<String, Integer> resultMap =
-                                new HashMap<>();
-                        for (Tuple2<String, Integer> value : values) {
-                            resultMap.merge(value.f0,
-                                    value.f1, Integer::sum);
-                        }
-                        resultMap.forEach((k, v) -> {
-                            out.collect(new Tuple2<>(k, v));
-                        });
-                    }
-                })
+                .apply(new SlidingGroupByAllWindowFunction())
                 .windowAll(tumblingEventTimeWindows)
                 .process(new TopNAuthProcessFunction(10)).name("Top N").setParallelism(1)
                 .map(geoLocation);

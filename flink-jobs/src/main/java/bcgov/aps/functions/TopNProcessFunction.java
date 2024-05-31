@@ -96,7 +96,8 @@ public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String,
             met.setNamespace("-");
             met.setWindowTime(context.window().maxTimestamp());
             met.setStatus(MetricsObject.HTTP_STATUS.NA);
-            met.setAuthHash("-");
+            met.setAuthSub("-");
+            met.setAuthJti("-");
             met.setGeo(GeoLocInfo.newEmptyGeoInfo());
             out.collect(new Tuple2<>(met, other));
         }

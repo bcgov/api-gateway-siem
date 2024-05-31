@@ -15,6 +15,9 @@ public class GWRequestHeader {
     @JsonProperty("host")
     String host;
 
-    @JsonProperty("x-aps-auth-hash")
-    String authHash;
+    @JsonProperty("x-auth-jti")
+    String authJti;
+
+    @JsonProperty("x-auth-sub")
+    String authSub;
 }

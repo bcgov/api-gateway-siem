@@ -28,8 +28,11 @@ public class MetricsObject {
     @JsonProperty(value = "success")
     HTTP_STATUS status;
 
-    @JsonProperty(value = "auth_hash")
-    String authHash;
+    @JsonProperty("auth_jti")
+    String authJti;
+
+    @JsonProperty("auth_sub")
+    String authSub;
 
     @JsonProperty(value = "auth_type")
     AUTH_TYPE authType;

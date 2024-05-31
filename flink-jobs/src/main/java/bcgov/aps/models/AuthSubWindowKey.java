@@ -9,14 +9,13 @@ package bcgov.aps.models;
  * JWT-KEYCLOAK does not have anything
  */
 
-public class AuthWindowKey {
+public class AuthSubWindowKey {
     static public String getKey(KongLogRecord rec) {
-        String authHash = "1234";
         return String.format("%s,%s,%s,%s,%s",
                 rec.getNamespace(),
                 rec.getRequestUriHost(),
                 rec.getClientIp(),
-                rec.getRequest().getHeaders().getAuthHash(),
+                rec.getRequest().getHeaders().getAuthSub(),
                 rec.getAuthenticatedEntity() == null ?
                         null :
                         rec.getAuthenticatedEntity().getId());
@@ -29,14 +28,13 @@ public class AuthWindowKey {
         record.setRequestUriHost(parts[1]);
         record.setClientIp(parts[2]);
         if (!parts[3].equals("null")) {
-            record.setAuthHash(parts[3]);
+            record.setAuthSub(parts[3]);
             record.setAuthType(MetricsObject.AUTH_TYPE.jwt);
         }
         if (!parts[4].equals("null")) {
-            record.setAuthHash(parts[4]);
+            record.setAuthSub(parts[4]);
             record.setAuthType(MetricsObject.AUTH_TYPE.oidc);
         }
-
         return record;
     }
 }
