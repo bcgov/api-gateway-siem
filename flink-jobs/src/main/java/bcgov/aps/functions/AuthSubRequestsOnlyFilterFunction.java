@@ -8,7 +8,7 @@ import org.apache.flink.api.common.functions.FilterFunction;
 public class AuthSubRequestsOnlyFilterFunction implements FilterFunction<KongLogTuple> {
     @Override
     public boolean filter(KongLogTuple kong) throws Exception {
-        log.debug("[AuthSub] {} {}", kong.getKongLogRecord());
+        log.info("[AuthSub] {} {}", kong.getKongLogRecord(), kong.getKongLogRecord().getRequest().getHeaders().getAuthSub() != null);
         return kong.getKongLogRecord().getRequest().getHeaders().getAuthSub() != null;
     }
 }

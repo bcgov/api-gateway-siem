@@ -58,7 +58,7 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
             }
             requestCount += element.f1;
         }
-        log.debug("TopNAuth {} {} | {} -> {} : {}",
+        log.info("TopNAuth {} {} | {} -> {} : {}",
                 ipCount, topN.size(),
                 context.window().getStart(),
                 context.window().getEnd(),
