@@ -17,13 +17,14 @@ import java.util.PriorityQueue;
 public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<String, Integer>, Tuple2<MetricsObject, Integer>, TimeWindow> {
     private final int topSize;
 
-    private transient Long lastMetricTs = Long.valueOf(0L);
+    private Long lastMetricTs;
 
     private List<Tuple2<String, Integer>> lastWindow;
 
     public TopNAuthProcessFunction(int topSize) {
         this.topSize = topSize;
         this.lastWindow = new ArrayList<>();
+        this.lastMetricTs = Long.valueOf(0L);
     }
 
     @Override
