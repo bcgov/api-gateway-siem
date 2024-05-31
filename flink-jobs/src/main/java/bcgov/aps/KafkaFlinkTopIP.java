@@ -156,8 +156,8 @@ public class KafkaFlinkTopIP {
         SingleOutputStreamOperator<Tuple2<String,
                 Integer>> streamWindow =
                 inputStream
-//                        .filter(new
-//                                AuthHashRequestsOnlyFilterFunction())
+                        .filter(new
+                                AuthSubRequestsOnlyFilterFunction())
                         .assignTimestampsAndWatermarks(
                             WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
                             .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))

@@ -30,8 +30,7 @@ public class AuthSubWindowKey {
         if (!parts[3].equals("null")) {
             record.setAuthSub(parts[3]);
             record.setAuthType(MetricsObject.AUTH_TYPE.jwt);
-        }
-        if (!parts[4].equals("null")) {
+        } else if (!parts[4].equals("null")) {
             record.setAuthSub(parts[4]);
             record.setAuthType(MetricsObject.AUTH_TYPE.oidc);
         }
