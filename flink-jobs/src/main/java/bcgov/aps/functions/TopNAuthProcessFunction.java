@@ -94,11 +94,13 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
         }
         if (lastMetricTs != 0 && lastMetricTs != window.getEnd()) {
             for (Tuple2<String, Integer> entry :
-                    topN) {
-                MetricsObject met =
-                        AuthSubWindowKey.parseKey(entry.f0);
-                met.setWindowTime(window.getEnd());
-                out.collect(new Tuple2<>(met, 0));
+                    lastWindow) {
+                if (topN.stream().filter((t) -> t.f0.equals(entry.f0)).count() == 0) {
+                    MetricsObject met =
+                            AuthSubWindowKey.parseKey(entry.f0);
+                    met.setWindowTime(window.getEnd());
+                    out.collect(new Tuple2<>(met, 0));
+                }
             }
         }
         lastWindow.clear();
