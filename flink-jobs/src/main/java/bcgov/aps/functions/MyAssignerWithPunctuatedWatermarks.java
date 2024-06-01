@@ -23,6 +23,6 @@ public class MyAssignerWithPunctuatedWatermarks implements AssignerWithPunctuate
     public long extractTimestamp(Tuple2<KongLogRecord,
             Integer> element, long previousElementTimestamp) {
         long ts = element.f0.getTimestamp() + element.f0.getLatencies().getRequest();
-        return (System.currentTimeMillis());
+        return (ts);
     }
 }

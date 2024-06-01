@@ -73,6 +73,7 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
             met.setWindowTime(context.window().getEnd());
             out.collect(new Tuple2<>(met, entry.f1));
         }
+        
     }
 
     /*

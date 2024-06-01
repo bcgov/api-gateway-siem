@@ -63,7 +63,7 @@ public class KafkaFlinkTopIP {
         KafkaSource<String> kafkaSource = kafka.build();
 
         WatermarkStrategy<String> watermarkStrategy =
-                WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(0));
+                WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(5));
 
         final DataStream<String> inputStream =
                 env.fromSource(kafkaSource,
@@ -76,8 +76,8 @@ public class KafkaFlinkTopIP {
         SingleOutputStreamOperator<Tuple2<KongLogRecord,
                 Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction()).name("Kafka Input Stream")
-//                .assignTimestampsAndWatermarks(new
-//                        MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
+                .assignTimestampsAndWatermarks(new
+                        MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
                 .process(new SplitProcessFunction(out1)).name("Split Output");
 
         GeoLocRichMapFunction geoLocation =
@@ -102,8 +102,8 @@ public class KafkaFlinkTopIP {
                         Integer>>("missed-window") {
                 };
 
-        //TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
-        TumblingProcessingTimeWindows processingTimeWindows = TumblingProcessingTimeWindows.of(Duration.ofSeconds(15));
+        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+        //TumblingProcessingTimeWindows processingTimeWindows = TumblingProcessingTimeWindows.of(Duration.ofSeconds(15));
 
         SingleOutputStreamOperator<Tuple2<String, Integer>>
                 streamWindow = parsedStream
@@ -112,7 +112,8 @@ public class KafkaFlinkTopIP {
 //                    WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(0))
 //                    .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
                 .keyBy(value -> WindowKey.getKey(value.f0))
-                .window(processingTimeWindows)
+                .window(tumblingEventTimeWindows)
+                //.trigger(TimeAndWatermarkTrigger.of(5000))
                 .sideOutputLateData(lateOutputTag)
                 .aggregate(new CountAggregateFunction(),
                         new CountWindowFunction()).name
@@ -121,7 +122,7 @@ public class KafkaFlinkTopIP {
         DataStream<Tuple2<MetricsObject, Integer>>
                 resultStream
                 = streamWindow
-                .windowAll(processingTimeWindows)
+                .windowAll(tumblingEventTimeWindows)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
                 .map(geoLocation)
@@ -158,9 +159,9 @@ public class KafkaFlinkTopIP {
                 inputStream
                         .filter(new
                                 AuthSubRequestsOnlyFilterFunction())
-                        .assignTimestampsAndWatermarks(
-                            WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
-                            .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
+//                        .assignTimestampsAndWatermarks(
+//                            WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
+//                            .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
                         .keyBy(value -> AuthSubWindowKey.getKey(value.getKongLogRecord()))
                         .window(slidingEventTimeWindows)
                         .sideOutputLateData(lateOutputTag)
