@@ -1,36 +1,33 @@
 package bcgov.aps.functions;
 
 import bcgov.aps.JsonUtils;
-import bcgov.aps.KafkaFlinkTopIP;
+import bcgov.aps.models.GeoLocInfo;
 import bcgov.aps.models.KongLogRecord;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.util.Collector;
 
 @Slf4j
-public class JsonParserProcessFunction extends ProcessFunction<String, Tuple2<KongLogRecord, Integer>> {
+public class JsonGeoParserFunction extends ProcessFunction<String, GeoLocInfo> {
 
     private final ObjectMapper objectMapper;
 
-    public JsonParserProcessFunction() {
+    public JsonGeoParserFunction() {
         objectMapper = JsonUtils.getObjectMapper();
     }
 
     @Override
     public void processElement(String value,
                                Context ctx,
-                               Collector<Tuple2<KongLogRecord, Integer>> out) {
+                               Collector<GeoLocInfo> out) {
         try {
-            KongLogRecord jsonNode =
+            GeoLocInfo jsonNode =
                     objectMapper.readValue(value,
-                            KongLogRecord.class);
+                            GeoLocInfo.class);
 
-            out.collect(new Tuple2<>(jsonNode, 1));
+            out.collect(jsonNode);
         } catch (Exception e) {
             log.error("Parsing error", e);
         }

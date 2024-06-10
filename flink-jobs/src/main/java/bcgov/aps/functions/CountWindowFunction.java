@@ -21,8 +21,8 @@ public class CountWindowFunction implements WindowFunction<Integer, Tuple2<Strin
             count = count + value;
         }
 
-        log.debug("CountWindow {} {} {} {}",
-                input.iterator().hasNext(), window.maxTimestamp(), key, count);
+//        log.debug("CountWindow {} {} {} {}",
+//                input.iterator().hasNext(), window.maxTimestamp(), key, count);
         out.collect(new Tuple2<>(key, count));
     }
 }

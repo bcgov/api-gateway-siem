@@ -8,10 +8,7 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFuncti
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 @Slf4j
 public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<String, Integer>, Tuple2<MetricsObject, Integer>, TimeWindow> {
@@ -70,10 +67,14 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
                 topN) {
             MetricsObject met =
                     AuthSubWindowKey.parseKey(entry.f0);
-            met.setWindowTime(context.window().getEnd());
-            out.collect(new Tuple2<>(met, entry.f1));
+            Arrays.stream(met.getClientIp().split("#")).forEach((ip -> {
+                MetricsObject ipmet =
+                        AuthSubWindowKey.parseKey(entry.f0);
+                ipmet.setClientIp(ip);
+                ipmet.setWindowTime(context.window().getEnd());
+                out.collect(new Tuple2<>(ipmet, entry.f1));
+            }));
         }
-        
     }
 
     /*
@@ -99,8 +100,14 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
                 if (topN.stream().filter((t) -> t.f0.equals(entry.f0)).count() == 0) {
                     MetricsObject met =
                             AuthSubWindowKey.parseKey(entry.f0);
-                    met.setWindowTime(window.getEnd());
-                    out.collect(new Tuple2<>(met, 0));
+                    Arrays.stream(met.getClientIp().split("#")).forEach((ip -> {
+                        MetricsObject ipmet =
+                                AuthSubWindowKey.parseKey(entry.f0);
+                        ipmet.setClientIp(ip);
+                        ipmet.setWindowTime(window.getEnd());
+                        out.collect(new Tuple2<>(ipmet, 0));
+                    }));
+
                 }
             }
         }

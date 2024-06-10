@@ -2,6 +2,7 @@ package bcgov.aps.functions;
 
 import bcgov.aps.geoloc.GeoLocService;
 import bcgov.aps.geoloc.IPWhoVendor;
+import bcgov.aps.geoloc.KafkaTopicCache;
 import bcgov.aps.geoloc.NullGeoLoc;
 import bcgov.aps.models.GeoLocInfo;
 import bcgov.aps.models.MetricsObject;
@@ -22,37 +23,32 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
 
     private transient GeoLocService geoLocService;
 
-    private transient LoadingCache<String, GeoLocInfo> ips;
 
     @Override
     public void open(Configuration parameters) {
-        geoLocService = GeoLocService.factory(GeoLocService.VENDOR.NULL);
-        ips = CacheBuilder.newBuilder()
-                .maximumSize(1000)
-                .expireAfterWrite(60, TimeUnit.MINUTES)
-                .build(
-                        new CacheLoader<String, GeoLocInfo>() {
-                            @Override
-                            public GeoLocInfo load(String ip) throws IOException {
-                                return geoLocService.fetchGeoLocationInformation(ip);
-                            }
-                        });
+        geoLocService = GeoLocService.factory(GeoLocService.VENDOR.IPWHO);
     }
 
     @Override
     public Tuple2<MetricsObject, Integer> map(Tuple2<MetricsObject, Integer> value) {
-        if (value.f0.getClientIp() == null ||
-                value.f0.getClientIp().equals("other")) {
-            GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo();
+        String ip = value.f0.getClientIp();
+        if (ip == null ||
+                ip.equals("other")) {
+            GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo(ip);
             loc.setCountry("MissingIP");
             value.f0.setGeo(loc);
             return value;
         }
         try {
-            value.f0.setGeo(ips.get(value.f0.getClientIp()));
+            value.f0.setGeo(geoLocService.fetchGeoLocationInformation(ip));
         } catch (ExecutionException e) {
             log.error("Execution Exception {}", e.getMessage());
-            GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo();
+            GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo(ip);
+            loc.setCountry("Err");
+            value.f0.setGeo(loc);
+        } catch (IOException e) {
+            log.error("IO Exception {}", e.getMessage());
+            GeoLocInfo loc = GeoLocInfo.newEmptyGeoInfo(ip);
             loc.setCountry("Err");
             value.f0.setGeo(loc);
         }

@@ -32,6 +32,6 @@ public class Slf4jPrintSinkFunction implements SinkFunction<Tuple2<MetricsObject
         }
         sinkTotal += value.f1;
         log.info("Sink: [{}] {} {} {} : {}",
-                context.timestamp() - lastTs, sinkTotal, counter, value.f0.getClientIp(), value.f1);
+                context.timestamp() - lastTs, sinkTotal, counter, value.f0, value.f1);
     }
 }

@@ -13,19 +13,15 @@ public class AssertSinkFunction<T> implements SinkFunction<Tuple2<MetricsObject,
 
     static final Map<String, Integer> matches = new HashMap<>();
     static {
-        matches.put("other", 0);
-        matches.put("0.1.2.3", 1);
-        matches.put("0.2.2.1", 1);
-        matches.put("0.2.2.2", 1);
-        matches.put("0.2.2.3", 6);
-        matches.put("0.2.2.4", 1);
+        matches.put("9.9.2.3#10.9.2.3 sub-5678", 2);
+        matches.put("9.9.2.3#0.1.2.3 sub-1234", 3);
     }
 
     @Override
     public void invoke(Tuple2<MetricsObject, Integer> value, Context context) {
-        String ip = value.f0.getClientIp();
-        assertion (matches.containsKey(ip), String.format("Missing %s", ip));
-        assertion (matches.get(ip) == value.f1, String.format("Mismatch %s %d", ip, value.f1));
+        String key = value.f0.getClientIp() + " " + value.f0.getAuthSub();
+        assertion (matches.containsKey(key), String.format("Missing %s", key));
+        assertion (matches.get(key) == value.f1, String.format("Mismatch %s %d", key, value.f1));
     }
 
     private void assertion (boolean v, String message) {

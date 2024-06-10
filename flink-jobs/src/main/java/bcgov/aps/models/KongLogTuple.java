@@ -2,6 +2,8 @@ package bcgov.aps.models;
 
 import lombok.*;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @ToString

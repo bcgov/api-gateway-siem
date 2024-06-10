@@ -18,7 +18,7 @@ public class KafkaSinkFunction<T> {
                         .setSerializationInclusion(JsonInclude.Include.NON_NULL)
                         .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)));
 
-        return KafkaSink.<Tuple2<MetricsObject, Integer>>builder()
+        return KafkaSink.builder()
                 .setBootstrapServers(kafkaBootstrapServers)
                 .setRecordSerializer(KafkaRecordSerializationSchema.builder()
                         .setTopic(topic)

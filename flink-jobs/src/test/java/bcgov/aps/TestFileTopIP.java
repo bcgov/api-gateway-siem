@@ -1,28 +1,26 @@
 package bcgov.aps;
 
 import bcgov.aps.functions.*;
-import bcgov.aps.models.MetricsObject;
+import bcgov.aps.models.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.file.src.FileSource;
 import org.apache.flink.connector.file.src.reader.TextLineInputFormat;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.time.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.time.Duration;
 
+@Slf4j
 public class TestFileTopIP {
-    private static final Logger LOG =
-            LoggerFactory.getLogger(TestFileTopIP.class);
-
     public static void main(String[] args) throws Exception {
+
 
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.getExecutionEnvironment();
@@ -60,26 +58,32 @@ public class TestFileTopIP {
                 env.fromSource(fileSource,
                         WatermarkStrategy.forMonotonousTimestamps(), "whatever");
 
-        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+        SlidingEventTimeWindows slidingEventTimeWindows =
+                SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(15));
 
-        inputStream
+        SingleOutputStreamOperator<Tuple2<String, Integer>> streamWindow = inputStream
                 .process(new JsonParserProcessFunction())
                 .assignTimestampsAndWatermarks(new
                  MyAssignerWithPunctuatedWatermarks())
-                .keyBy(value -> value.f0.getClientIp())
-                .window(tumblingEventTimeWindows);
-//                .aggregate(new CountAggregateFunction(),
-//                        new CountWindowFunction());
-//
-//        DataStream<Tuple2<MetricsObject, Integer>> resultStream
-//                = parsedStream
-//                .windowAll(SlidingEventTimeWindows.of(Time.seconds(30), Time.seconds(30)))
-//                .process(new TopNProcessFunction(10))
-//                .map(new FlinkMetricsExposingMapFunction());
-//
-//        resultStream.addSink(new Slf4jPrintSinkFunction());
-//
-//        resultStream.addSink(new AssertSinkFunction<>());
+                .map(new KongLogMapFunction())
+                .filter(new
+                        AuthSubRequestsOnlyFilterFunction())
+                .keyBy(value -> value.getKongLogRecord().getRequest().getHeaders().getAuthSub())
+                .window(slidingEventTimeWindows)
+                .reduce(new AuthIPReduceFunction())
+                .flatMap(new AuthFlattenMapFunction());
+
+        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
+
+        DataStream<Tuple2<MetricsObject, Integer>> allWindow = streamWindow
+                .windowAll(tumblingEventTimeWindows)
+                .apply(new SlidingGroupByAllWindowFunction())
+                .windowAll(tumblingEventTimeWindows)
+                .process(new TopNAuthProcessFunction(10)).name("Top N").setParallelism(1);
+
+        allWindow.addSink(new Slf4jPrintSinkFunction());
+
+        allWindow.addSink(new AssertSinkFunction<>());
 
         env.execute("Flink Kafka Top IPs");
     }

@@ -90,12 +90,14 @@ public class FlinkMetricsExposingMapFunction extends RichMapFunction<Tuple2<Metr
             log.info("topngauge ADD {}", cacheKey);
             grp = metricGroup
                     .addGroup("client_ip", value.f0.getClientIp())
-                    .addGroup("geo_conn_isp", value.f0.getGeo().getConnection().getIsp())
-                    .addGroup("geo_conn_org", value.f0.getGeo().getConnection().getOrg())
-                    .addGroup("geo_country", value.f0.getGeo().getCountry())
                     .addGroup("http_status", value.f0.getStatus().name())
                     .addGroup("namespace", value.f0.getNamespace())
                     .addGroup("request_uri_host", value.f0.getRequestUriHost());
+            if (value.f0.getGeo() != null) {
+                grp.addGroup("geo_conn_isp", value.f0.getGeo().getConnection().getIsp())
+                        .addGroup("geo_conn_org", value.f0.getGeo().getConnection().getOrg())
+                        .addGroup("geo_country", value.f0.getGeo().getCountry());
+            }
             ips.put(cacheKey, grp);
         }
 

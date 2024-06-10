@@ -1,5 +1,7 @@
 package bcgov.aps.models;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * OIDC plugin has this:
  * "authenticated_entity": {
@@ -11,9 +13,7 @@ package bcgov.aps.models;
 
 public class AuthSubWindowKey {
     static public String getKey(KongLogRecord rec) {
-        return String.format("%s,%s,%s,%s,%s",
-                rec.getNamespace(),
-                rec.getRequestUriHost(),
+        return String.format("%s,%s,%s",
                 rec.getClientIp(),
                 rec.getRequest().getHeaders().getAuthSub(),
                 rec.getAuthenticatedEntity() == null ?
@@ -24,14 +24,12 @@ public class AuthSubWindowKey {
     static public MetricsObject parseKey(String key) {
         String[] parts = key.split(",");
         MetricsObject record = new MetricsObject();
-        record.setNamespace(parts[0]);
-        record.setRequestUriHost(parts[1]);
-        record.setClientIp(parts[2]);
-        if (!parts[3].equals("null")) {
-            record.setAuthSub(parts[3]);
+        record.setClientIp(parts[0]);
+        if (!parts[1].equals("null")) {
+            record.setAuthSub(parts[1]);
             record.setAuthType(MetricsObject.AUTH_TYPE.jwt);
-        } else if (!parts[4].equals("null")) {
-            record.setAuthSub(parts[4]);
+        } else if (!parts[2].equals("null")) {
+            record.setAuthSub(parts[2]);
             record.setAuthType(MetricsObject.AUTH_TYPE.oidc);
         }
         return record;

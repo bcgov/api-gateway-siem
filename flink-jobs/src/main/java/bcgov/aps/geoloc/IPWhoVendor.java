@@ -20,6 +20,7 @@ public class IPWhoVendor implements GeoLocService {
     }
 
     public GeoLocInfo fetchGeoLocationInformation(String ip) throws IOException {
+        log.info("[IPWhoVendor] {}", ip);
         String apiUrl = String.format("%s/%s", IPWHO_ENDPOINT, ip);
 
         HttpURLConnection connection =
@@ -30,7 +31,8 @@ public class IPWhoVendor implements GeoLocService {
 
         int responseCode = connection.getResponseCode();
         if (responseCode != 200) {
-            throw new IOException("Failed to fetch user " +
+            log.error("Failed response {} {}", responseCode, connection.getResponseMessage());
+            throw new IOException("Failed to fetch geo loc " +
                     "details: HTTP " + responseCode);
         }
 

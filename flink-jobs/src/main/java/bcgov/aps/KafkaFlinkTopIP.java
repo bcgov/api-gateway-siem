@@ -34,6 +34,7 @@ public class KafkaFlinkTopIP {
 
         String kafkaBootstrapServers = System.getenv(
                 "KAFKA_BOOTSTRAP_SERVERS");
+        String kafkaGroupId = System.getenv("KAFKA_GROUP_ID");
         String kafkaTopics = System.getenv("KAFKA_TOPICS");
         String kafkaTopicPattern = System.getenv(
                 "KAFKA_TOPIC_PATTERN");
@@ -43,7 +44,7 @@ public class KafkaFlinkTopIP {
 
         KafkaSourceBuilder kafka =
                 KafkaSource.<String>builder()
-                        .setGroupId("siem")
+                        .setGroupId(kafkaGroupId)
                         .setProperty("partition.discovery.interval.ms", "30000")
                         .setBootstrapServers(kafkaBootstrapServers)
                         .setStartingOffsets(OffsetsInitializer.latest())
@@ -125,7 +126,6 @@ public class KafkaFlinkTopIP {
                 .windowAll(tumblingEventTimeWindows)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
-                .map(geoLocation)
                 .map(new
                         FlinkMetricsExposingMapFunction());
 
@@ -152,21 +152,26 @@ public class KafkaFlinkTopIP {
                 };
 
         SlidingEventTimeWindows slidingEventTimeWindows =
-                SlidingEventTimeWindows.of(Duration.ofSeconds(30), Duration.ofSeconds(15));
+                SlidingEventTimeWindows.of(Duration.ofMinutes(5), Duration.ofSeconds(15));
 
         SingleOutputStreamOperator<Tuple2<String,
                 Integer>> streamWindow =
                 inputStream
                         .filter(new
                                 AuthSubRequestsOnlyFilterFunction())
-//                        .assignTimestampsAndWatermarks(
-//                            WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
-//                            .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
-                        .keyBy(value -> AuthSubWindowKey.getKey(value.getKongLogRecord()))
+                        .keyBy(value -> value.getKongLogRecord().getRequest().getHeaders().getAuthSub())
                         .window(slidingEventTimeWindows)
-                        .sideOutputLateData(lateOutputTag)
-                        .aggregate(new CountLogTupleAggregateFunction(),
-                                new CountWindowFunction()).name("Sliding Window Auth Aggr");
+                        .reduce(new AuthIPReduceFunction())
+                        .flatMap(new AuthFlattenMapFunction());
+
+////                        .assignTimestampsAndWatermarks(
+////                            WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
+////                            .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
+//                        .keyBy(value -> AuthSubWindowKey.getKey(value.getKongLogRecord()))
+//                        .window(slidingEventTimeWindows)
+//                        .sideOutputLateData(lateOutputTag)
+//                        .aggregate(new CountLogTupleAggregateFunction(),
+//                                new CountWindowFunction()).name("Sliding Window Auth Aggr");
 
         TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
 
