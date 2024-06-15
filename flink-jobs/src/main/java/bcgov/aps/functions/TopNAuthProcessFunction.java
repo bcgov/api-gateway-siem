@@ -75,6 +75,7 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
                 out.collect(new Tuple2<>(ipmet, entry.f1));
             }));
         }
+
     }
 
     /*
@@ -100,14 +101,14 @@ public class TopNAuthProcessFunction extends ProcessAllWindowFunction<Tuple2<Str
                 if (topN.stream().filter((t) -> t.f0.equals(entry.f0)).count() == 0) {
                     MetricsObject met =
                             AuthSubWindowKey.parseKey(entry.f0);
-                    Arrays.stream(met.getClientIp().split("#")).forEach((ip -> {
+
+                    Arrays.stream(met.getClientIp().split("#")).forEach((ip) -> {
                         MetricsObject ipmet =
                                 AuthSubWindowKey.parseKey(entry.f0);
                         ipmet.setClientIp(ip);
                         ipmet.setWindowTime(window.getEnd());
                         out.collect(new Tuple2<>(ipmet, 0));
-                    }));
-
+                    });
                 }
             }
         }

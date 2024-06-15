@@ -1,6 +1,7 @@
 package bcgov.aps.models;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.flink.api.java.tuple.Tuple2;
 
 /**
  * OIDC plugin has this:
@@ -13,8 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 
 public class AuthSubWindowKey {
     static public String getKey(KongLogRecord rec) {
-        return String.format("%s,%s,%s",
+        return String.format("%s,%s,%s,%s",
                 rec.getClientIp(),
+                rec.getRequestUriHost(),
                 rec.getRequest().getHeaders().getAuthSub(),
                 rec.getAuthenticatedEntity() == null ?
                         null :
@@ -25,13 +27,24 @@ public class AuthSubWindowKey {
         String[] parts = key.split(",");
         MetricsObject record = new MetricsObject();
         record.setClientIp(parts[0]);
-        if (!parts[1].equals("null")) {
-            record.setAuthSub(parts[1]);
-            record.setAuthType(MetricsObject.AUTH_TYPE.jwt);
-        } else if (!parts[2].equals("null")) {
+        record.setRequestUriHost(parts[1]);
+        if (!parts[2].equals("null")) {
             record.setAuthSub(parts[2]);
+            record.setAuthType(MetricsObject.AUTH_TYPE.jwt);
+        } else if (!parts[3].equals("null")) {
+            record.setAuthSub(parts[3]);
             record.setAuthType(MetricsObject.AUTH_TYPE.oidc);
         }
         return record;
+    }
+
+    static public Tuple2<String, MetricsObject.AUTH_TYPE> getAuthSub(KongLogRecord rec) {
+        if (rec.getRequest().getHeaders().getAuthSub() == null) {
+            return rec.getAuthenticatedEntity() == null ?
+                    null :
+                    new Tuple2(rec.getAuthenticatedEntity().getId(), MetricsObject.AUTH_TYPE.oidc);
+        } else {
+            return new Tuple2(rec.getRequest().getHeaders().getAuthSub(), MetricsObject.AUTH_TYPE.jwt);
+        }
     }
 }

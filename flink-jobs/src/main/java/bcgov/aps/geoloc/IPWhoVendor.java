@@ -3,6 +3,7 @@ package bcgov.aps.geoloc;
 import bcgov.aps.JsonUtils;
 import bcgov.aps.models.GeoLocInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.cache.LoadingCache;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -21,7 +22,8 @@ public class IPWhoVendor implements GeoLocService {
 
     public GeoLocInfo fetchGeoLocationInformation(String ip) throws IOException {
         log.info("[IPWhoVendor] {}", ip);
-        String apiUrl = String.format("%s/%s", IPWHO_ENDPOINT, ip);
+        String apiUrl = String.format("%s/%s",
+                IPWHO_ENDPOINT, ip);
 
         HttpURLConnection connection =
                 (HttpURLConnection) new URL(apiUrl).openConnection();
@@ -31,18 +33,29 @@ public class IPWhoVendor implements GeoLocService {
 
         int responseCode = connection.getResponseCode();
         if (responseCode != 200) {
-            log.error("Failed response {} {}", responseCode, connection.getResponseMessage());
-            throw new IOException("Failed to fetch geo loc " +
+            log.error("Failed response {} {}",
+                    responseCode,
+                    connection.getResponseMessage());
+            throw new IOException("Failed to fetch geo " +
+                    "loc " +
                     "details: HTTP " + responseCode);
         }
 
         GeoLocInfo geo =
                 objectMapper.readValue(connection.getInputStream(), GeoLocInfo.class);
-        log.info("[{}] {} {}", ip, geo.isSuccess() ? "OK" : "ER", geo.getCountry());
+        log.info("[{}] {} {}", ip, geo.isSuccess() ?
+                "OK" : "ER", geo.getCountry());
 
         if (!geo.isSuccess()) {
-            throw new IOException("IPWho returned a failed response.");
+            log.error("[{}] {} {}", ip, geo.getMessage());
+            throw new IOException("IPWho returned a " +
+                    "failed response.");
         }
         return geo;
+    }
+
+    @Override
+    public void prefetch(LoadingCache<String, GeoLocInfo> ips) {
+
     }
 }

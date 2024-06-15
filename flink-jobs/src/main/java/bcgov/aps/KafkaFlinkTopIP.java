@@ -15,7 +15,6 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.util.OutputTag;
 
 import java.time.Duration;
@@ -31,40 +30,34 @@ public class KafkaFlinkTopIP {
     }
 
     private void process() throws Exception {
-
-        String kafkaBootstrapServers = System.getenv(
-                "KAFKA_BOOTSTRAP_SERVERS");
-        String kafkaGroupId = System.getenv("KAFKA_GROUP_ID");
-        String kafkaTopics = System.getenv("KAFKA_TOPICS");
-        String kafkaTopicPattern = System.getenv(
-                "KAFKA_TOPIC_PATTERN");
+        Config config = new Config();
 
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.getExecutionEnvironment();
 
-        KafkaSourceBuilder kafka =
+        KafkaSourceBuilder<String> kafka =
                 KafkaSource.<String>builder()
-                        .setGroupId(kafkaGroupId)
+                        .setGroupId(config.getKafkaGroupId())
                         .setProperty("partition.discovery.interval.ms", "30000")
-                        .setBootstrapServers(kafkaBootstrapServers)
+                        .setBootstrapServers(config.getKafkaBootstrapServers())
                         .setStartingOffsets(OffsetsInitializer.latest())
                         .setValueOnlyDeserializer(new SimpleStringSchema());
 
-        if (StringUtils.isNotBlank(kafkaTopics)) {
+        if (StringUtils.isNotBlank(config.getKafkaTopics())) {
             log.info("Topics {}", StringUtils.join(
-                    kafkaTopics, '|'));
+                    config.getKafkaTopics(), '|'));
             List<String> _kafkaTopics =
-                    Arrays.asList(kafkaTopics.split(","));
+                    Arrays.asList(config.getKafkaTopics().split(","));
             kafka.setTopics(_kafkaTopics);
         } else {
-            log.info("Topic Pattern {}", kafkaTopicPattern);
-            kafka.setTopicPattern(Pattern.compile(kafkaTopicPattern));
+            log.info("Topic Pattern {}", config.getKafkaTopicPattern());
+            kafka.setTopicPattern(Pattern.compile(config.getKafkaTopicPattern()));
         }
 
         KafkaSource<String> kafkaSource = kafka.build();
 
         WatermarkStrategy<String> watermarkStrategy =
-                WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(5));
+                WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(config.getMaxOutOfOrderness()));
 
         final DataStream<String> inputStream =
                 env.fromSource(kafkaSource,
@@ -81,27 +74,27 @@ public class KafkaFlinkTopIP {
                         MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
                 .process(new SplitProcessFunction(out1)).name("Split Output");
 
-        GeoLocRichMapFunction geoLocation =
-                new GeoLocRichMapFunction();
 
-        buildSlidingAuthDataStream(kafkaBootstrapServers,
+        buildSlidingAuthDataStream(config.getKafkaBootstrapServers(),
                 parsedStream
-                        .getSideOutput(out1), geoLocation);
+                        .getSideOutput(out1));
 
-        buildPrimaryStream(kafkaBootstrapServers,
-                parsedStream, geoLocation);
+        buildPrimaryStream(config.getKafkaBootstrapServers(),
+                parsedStream);
 
         env.execute("Flink Kafka Top IPs");
     }
 
     static private void buildPrimaryStream(
             String kafkaBootstrapServers,
-            SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream,
-            GeoLocRichMapFunction geoLocation) {
+            SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream) {
         final OutputTag<Tuple2<KongLogRecord, Integer>> lateOutputTag =
                 new OutputTag<Tuple2<KongLogRecord,
                         Integer>>("missed-window") {
                 };
+
+        GeoLocRichMapFunction geoLocation =
+                new GeoLocRichMapFunction();
 
         TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
         //TumblingProcessingTimeWindows processingTimeWindows = TumblingProcessingTimeWindows.of(Duration.ofSeconds(15));
@@ -126,6 +119,7 @@ public class KafkaFlinkTopIP {
                 .windowAll(tumblingEventTimeWindows)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
+                .map(geoLocation)
                 .map(new
                         FlinkMetricsExposingMapFunction());
 
@@ -144,12 +138,14 @@ public class KafkaFlinkTopIP {
 
     private void buildSlidingAuthDataStream(
             String kafkaBootstrapServers,
-            DataStream<KongLogTuple> inputStream,
-            GeoLocRichMapFunction geoLocation) {
+            DataStream<KongLogTuple> inputStream) {
 
         final OutputTag<KongLogTuple> lateOutputTag =
                 new OutputTag<KongLogTuple>("late-data") {
                 };
+
+        GeoLocRichMapFunction geoLocation =
+                new GeoLocRichMapFunction();
 
         SlidingEventTimeWindows slidingEventTimeWindows =
                 SlidingEventTimeWindows.of(Duration.ofMinutes(5), Duration.ofSeconds(15));
@@ -159,7 +155,7 @@ public class KafkaFlinkTopIP {
                 inputStream
                         .filter(new
                                 AuthSubRequestsOnlyFilterFunction())
-                        .keyBy(value -> value.getKongLogRecord().getRequest().getHeaders().getAuthSub())
+                        .keyBy(value -> AuthSubWindowKey.getAuthSub(value.getKongLogRecord()).f0)
                         .window(slidingEventTimeWindows)
                         .reduce(new AuthIPReduceFunction())
                         .flatMap(new AuthFlattenMapFunction());
@@ -179,7 +175,7 @@ public class KafkaFlinkTopIP {
                 .windowAll(tumblingEventTimeWindows)
                 .apply(new SlidingGroupByAllWindowFunction())
                 .windowAll(tumblingEventTimeWindows)
-                .process(new TopNAuthProcessFunction(10)).name("Top N").setParallelism(1)
+                .process(new TopNAuthProcessFunction(50)).name("Top N").setParallelism(1)
                 .map(geoLocation);
 
         allWindow.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers, "siem-auth"));

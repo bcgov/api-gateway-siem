@@ -1,11 +1,16 @@
 package bcgov.aps.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.flink.api.java.tuple.Tuple2;
+
+import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -25,5 +30,8 @@ public class KongLogRecord {
     GWResponse response;
     GWLatencies latencies;
     String namespace;
+
+    @JsonIgnore
+    Map<String, Tuple2<String, Integer>> stash;
 
 }

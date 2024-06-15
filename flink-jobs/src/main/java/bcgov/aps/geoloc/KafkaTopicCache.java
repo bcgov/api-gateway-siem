@@ -1,101 +1,107 @@
 package bcgov.aps.geoloc;
 
-import bcgov.aps.functions.JsonGeoParserFunction;
-import bcgov.aps.functions.JsonParserProcessFunction;
-import bcgov.aps.functions.KafkaSinkFunction;
+import bcgov.aps.Config;
+import bcgov.aps.JsonUtils;
 import bcgov.aps.models.GeoLocInfo;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
-import bcgov.aps.models.KongLogRecord;
-import bcgov.aps.models.MetricsObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.LoadingCache;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.flink.api.common.RuntimeExecutionMode;
-import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
-import org.apache.flink.connector.kafka.sink.KafkaSink;
-import org.apache.flink.connector.kafka.source.KafkaSource;
-import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
-import org.apache.flink.connector.kafka.sink.KafkaSinkBuilder;
-import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
-import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 public class KafkaTopicCache implements GeoLocService {
     static final String TOPIC = "siem-ip";
 
-    private transient KafkaSink<GeoLocInfo> kafkaSink;
-    private transient KafkaSource<String> kafkaSource;
+    transient final ObjectMapper mapper =
+            JsonUtils.getObjectMapper();
 
-    private transient Map<String, GeoLocInfo> ips;
+    private final transient GeoLocService geoLocService;
 
-    private transient GeoLocService geoLocService;
-
-    private transient final StreamExecutionEnvironment env;
+    private final transient KafkaProducer<String, String> producer;
 
     public KafkaTopicCache(GeoLocService geoLocService) {
-        this.ips = new HashMap<>();
         this.geoLocService = geoLocService;
-        this.env = StreamExecutionEnvironment.getExecutionEnvironment();
-
-        String kafkaBootstrapServers = System.getenv(
-                "KAFKA_BOOTSTRAP_SERVERS");
-        kafkaSink = new KafkaSinkFunction<GeoLocInfo>().build(kafkaBootstrapServers, TOPIC);
-
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setRuntimeMode(RuntimeExecutionMode.STREAMING);
-
-        KafkaSourceBuilder kafka =
-                KafkaSource.<String>builder()
-                        .setGroupId("siem")
-                        .setProperty("partition.discovery.interval.ms", "30000")
-                        .setBootstrapServers(kafkaBootstrapServers)
-                        .setStartingOffsets(OffsetsInitializer.earliest())
-                        .setValueOnlyDeserializer(new SimpleStringSchema())
-                        .setTopics(TOPIC);
-        kafkaSource = kafka.build();
-
-        DataStream<String> stream = env.fromSource(
-                kafkaSource,
-                WatermarkStrategy.noWatermarks(),
-                "Kafka Source");
-
-        SingleOutputStreamOperator<GeoLocInfo> out
-                = stream.process(new JsonGeoParserFunction()).name("Kafka Input Stream");
-
-        out.addSink(new SinkFunction <GeoLocInfo>() {
-            @Override
-            public void invoke(GeoLocInfo value, Context context) {
-                log.info("New IP Caching {}", value.getIp());
-                ips.put(value.getIp(), value);
-            }
-        });
+        this.producer = prepareProducer();
     }
 
     @Override
     public GeoLocInfo fetchGeoLocationInformation(String ip) throws IOException, ExecutionException {
-        GeoLocInfo geo = ips.get(ip);
-        if (geo == null) {
-            log.info("[KafkaTopicCache] MISS {}", ip);
-            geo = geoLocService.fetchGeoLocationInformation(ip);
-            if (geo != null) {
-                DataStream<GeoLocInfo> stream = env.fromElements(geo);
-                stream.sinkTo(kafkaSink);
-            }
+        GeoLocInfo geo = geoLocService.fetchGeoLocationInformation(ip);
+        if (geo != null) {
+            send(geo);
         } else {
-            log.info("[KafkaTopicCache] HIT  {}", ip);
+            log.error("Failed to fetch geo " +
+                    "loc " +
+                    "details for {}", ip);
+            return GeoLocInfo.newEmptyGeoInfo(ip);
         }
         return geo;
     }
 
+    @Override
+    public void prefetch(LoadingCache<String, GeoLocInfo> ips) {
+        KafkaConsumerRunner runner =
+                new KafkaConsumerRunner(ips);
+
+        // get a reference to the current thread
+        final Thread mainThread =
+                Thread.currentThread();
+
+        // adding the shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                log.info("Detected a shutdown, let's " +
+                        "exit" +
+                        " by calling shutdown" +
+                        "()...");
+                runner.shutdown();
+
+                // join the main thread to allow the
+                // execution of the code in the main
+                // thread
+                try {
+                    mainThread.join();
+                } catch (InterruptedException e) {
+                    log.error("Interrupted after " +
+                            "consumer" +
+                            " shutdown", e);
+                }
+            }
+        });
+
+        ExecutorService executorService =
+                Executors.newSingleThreadExecutor();
+
+        CompletableFuture.runAsync(runner, executorService);
+    }
+
+    private KafkaProducer<String, String> prepareProducer() {
+        Config config = new Config();
+        Properties properties = new Properties();
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getKafkaBootstrapServers());
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        return new KafkaProducer<>(properties);
+    }
+
+    private void send(GeoLocInfo geo) throws JsonProcessingException {
+
+        String value = mapper.writeValueAsString(geo);
+
+        ProducerRecord<String, String> record =
+                new ProducerRecord<>(TOPIC, geo.getIp(),
+                        value);
+        producer.send(record);
+    }
 }
