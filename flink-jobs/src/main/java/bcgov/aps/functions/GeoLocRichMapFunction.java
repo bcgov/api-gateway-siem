@@ -26,7 +26,7 @@ public class GeoLocRichMapFunction extends RichMapFunction<Tuple2<MetricsObject,
 
     @Override
     public void open(Configuration parameters) {
-        geoLocService = GeoLocService.factory(GeoLocService.VENDOR.KAFKA_WITH_IPWHO);
+        geoLocService = GeoLocService.factory(GeoLocService.VENDOR.KAFKA_ONLY);
     }
 
     @Override
