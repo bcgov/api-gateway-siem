@@ -16,8 +16,8 @@ public class LoadingMemoryCache implements GeoLocService {
 
     public LoadingMemoryCache(GeoLocService geoLocService) {
         ips = CacheBuilder.newBuilder()
-                .maximumSize(5000)
-                .expireAfterWrite(60, TimeUnit.MINUTES)
+                .maximumSize(10000)
+                //.expireAfterWrite(60, TimeUnit.MINUTES)
                 .build(
                         new CacheLoader<String,
                                 GeoLocInfo>() {
