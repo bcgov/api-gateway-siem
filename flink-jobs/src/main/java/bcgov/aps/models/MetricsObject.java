@@ -34,6 +34,12 @@ public class MetricsObject {
     @JsonProperty("auth_sub")
     String authSub;
 
+    @JsonProperty("consumer_username")
+    String consumerUsername;
+
+    @JsonProperty("consumer_tags")
+    String consumerTags;
+
     @JsonProperty(value = "auth_type")
     AUTH_TYPE authType;
 

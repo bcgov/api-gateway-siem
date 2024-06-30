@@ -15,10 +15,12 @@ import org.apache.flink.util.OutputTag;
 public class SplitProcessFunction extends ProcessFunction<Tuple2<KongLogRecord, Integer>, Tuple2<KongLogRecord, Integer>> {
 
     private final OutputTag<KongLogTuple> side;
+    private final OutputTag<KongLogTuple> side2;
 
 
-    public SplitProcessFunction(OutputTag<KongLogTuple> side) {
+    public SplitProcessFunction(OutputTag<KongLogTuple> side, OutputTag<KongLogTuple> side2) {
         this.side = side;
+        this.side2 = side2;
     }
 
     @Override
@@ -26,6 +28,7 @@ public class SplitProcessFunction extends ProcessFunction<Tuple2<KongLogRecord, 
                                Context ctx,
                                Collector<Tuple2<KongLogRecord, Integer>> out) {
         ctx.output(side, new KongLogTuple(value.f0, value.f1));
+        ctx.output(side2, new KongLogTuple(value.f0, value.f1));
         out.collect(value);
     }
 }

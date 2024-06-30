@@ -28,8 +28,13 @@ public class KongLogRecord {
     Long timestamp;
     GWRequest request;
     GWResponse response;
+    GWConsumer consumer;
     GWLatencies latencies;
     String namespace;
+    String datacenter;
+
+    @JsonProperty(value = "consumer_tags")
+    String consumerTags;
 
     @JsonIgnore
     Map<String, Tuple2<String, Integer>> stash;

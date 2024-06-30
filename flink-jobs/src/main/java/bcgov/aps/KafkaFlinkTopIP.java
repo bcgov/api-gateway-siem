@@ -2,6 +2,9 @@ package bcgov.aps;
 
 import bcgov.aps.functions.*;
 import bcgov.aps.models.*;
+import bcgov.aps.streams.ProcessTopNIPStream;
+import bcgov.aps.streams.SlidingAuthStream;
+import bcgov.aps.streams.TopNIPStream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -64,124 +67,32 @@ public class KafkaFlinkTopIP {
                         watermarkStrategy, "Kafka Source");
 
         final OutputTag<KongLogTuple> out1
-                = new OutputTag<KongLogTuple>("out-1") {
-        };
+                = new OutputTag<KongLogTuple>("out-1") {};
+        final OutputTag<KongLogTuple> out2
+                = new OutputTag<KongLogTuple>("out-2") {};
 
         SingleOutputStreamOperator<Tuple2<KongLogRecord,
                 Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction()).name("Kafka Input Stream")
                 .assignTimestampsAndWatermarks(new
                         MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
-                .process(new SplitProcessFunction(out1)).name("Split Output");
+                .process(new SplitProcessFunction(out1, out2)).name("Split Output");
 
-
-        buildSlidingAuthDataStream(config.getKafkaBootstrapServers(),
+        new SlidingAuthStream().build(config.getKafkaBootstrapServers(),
                 parsedStream
                         .getSideOutput(out1));
 
-        buildPrimaryStream(config.getKafkaBootstrapServers(),
+        new TopNIPStream().build(config.getKafkaBootstrapServers(),
+                parsedStream
+                        .getSideOutput(out2));
+
+        new ProcessTopNIPStream().build(config.getKafkaBootstrapServers(),
                 parsedStream);
 
         env.execute("Flink Kafka Top IPs");
     }
 
-    static private void buildPrimaryStream(
-            String kafkaBootstrapServers,
-            SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream) {
-        final OutputTag<Tuple2<KongLogRecord, Integer>> lateOutputTag =
-                new OutputTag<Tuple2<KongLogRecord,
-                        Integer>>("missed-window") {
-                };
 
-        GeoLocRichMapFunction geoLocation =
-                new GeoLocRichMapFunction();
 
-        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
-        //TumblingProcessingTimeWindows processingTimeWindows = TumblingProcessingTimeWindows.of(Duration.ofSeconds(15));
 
-        SingleOutputStreamOperator<Tuple2<String, Integer>>
-                streamWindow = parsedStream
-                .map(new InCounterMapFunction())
-//                .assignTimestampsAndWatermarks(
-//                    WatermarkStrategy.<Tuple2<KongLogRecord, Integer>>forBoundedOutOfOrderness(Duration.ofSeconds(0))
-//                    .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
-                .keyBy(value -> WindowKey.getKey(value.f0))
-                .window(tumblingEventTimeWindows)
-                //.trigger(TimeAndWatermarkTrigger.of(5000))
-                .sideOutputLateData(lateOutputTag)
-                .aggregate(new CountAggregateFunction(),
-                        new CountWindowFunction()).name
-                        ("Tumbling Window Route Aggr");
-
-        DataStream<Tuple2<MetricsObject, Integer>>
-                resultStream
-                = streamWindow
-                .windowAll(tumblingEventTimeWindows)
-                .process(new TopNProcessFunction(10))
-                .name("Top N").setParallelism(1)
-                .map(geoLocation)
-                .map(new
-                        FlinkMetricsExposingMapFunction());
-
-        resultStream.addSink(new Slf4jPrintSinkFunction
-                ());
-        resultStream.sinkTo(KafkaSinkFunction.build
-                (kafkaBootstrapServers, "siem-data")).name("Kafka Metrics Topic");
-
-        DataStream<Tuple2<KongLogRecord, Integer>> lateStream =
-                streamWindow
-                        .getSideOutput(lateOutputTag);
-
-        lateStream.sinkTo(KafkaSinkFunction.build
-                (kafkaBootstrapServers, "siem-late")).name("Kafka Late Topic");
-    }
-
-    private void buildSlidingAuthDataStream(
-            String kafkaBootstrapServers,
-            DataStream<KongLogTuple> inputStream) {
-
-        final OutputTag<KongLogTuple> lateOutputTag =
-                new OutputTag<KongLogTuple>("late-data") {
-                };
-
-        GeoLocRichMapFunction geoLocation =
-                new GeoLocRichMapFunction();
-
-        SlidingEventTimeWindows slidingEventTimeWindows =
-                SlidingEventTimeWindows.of(Duration.ofMinutes(5), Duration.ofSeconds(15));
-
-        SingleOutputStreamOperator<Tuple2<String,
-                Integer>> streamWindow =
-                inputStream
-                        .filter(new
-                                AuthSubRequestsOnlyFilterFunction())
-                        .keyBy(value -> AuthSubWindowKey.getAuthSub(value.getKongLogRecord()).f0)
-                        .window(slidingEventTimeWindows)
-                        .reduce(new AuthIPReduceFunction())
-                        .flatMap(new AuthFlattenMapFunction());
-
-////                        .assignTimestampsAndWatermarks(
-////                            WatermarkStrategy.<KongLogTuple>forBoundedOutOfOrderness(Duration.ofSeconds(0))
-////                            .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis()))
-//                        .keyBy(value -> AuthSubWindowKey.getKey(value.getKongLogRecord()))
-//                        .window(slidingEventTimeWindows)
-//                        .sideOutputLateData(lateOutputTag)
-//                        .aggregate(new CountLogTupleAggregateFunction(),
-//                                new CountWindowFunction()).name("Sliding Window Auth Aggr");
-
-        TumblingEventTimeWindows tumblingEventTimeWindows = TumblingEventTimeWindows.of(Duration.ofSeconds(15));
-
-        DataStream<Tuple2<MetricsObject, Integer>> allWindow = streamWindow
-                .windowAll(tumblingEventTimeWindows)
-                .apply(new SlidingGroupByAllWindowFunction())
-                .windowAll(tumblingEventTimeWindows)
-                .process(new TopNAuthProcessFunction(50)).name("Top N").setParallelism(1)
-                .map(geoLocation);
-
-        allWindow.sinkTo(KafkaSinkFunction.build(kafkaBootstrapServers, "siem-auth"));
-
-        DataStream<KongLogTuple> lateStream =
-                streamWindow.getSideOutput(lateOutputTag);
-        lateStream.addSink(new OverflowPrintSinkFunction());
-    }
 }

@@ -3,6 +3,8 @@ package bcgov.aps.models;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.java.tuple.Tuple2;
 
+import java.util.Base64;
+
 /**
  * OIDC plugin has this:
  * "authenticated_entity": {
@@ -14,13 +16,17 @@ import org.apache.flink.api.java.tuple.Tuple2;
 
 public class AuthSubWindowKey {
     static public String getKey(KongLogRecord rec) {
-        return String.format("%s,%s,%s,%s",
+        return String.format("%s,%s,%s,%s,%s,%s",
                 rec.getClientIp(),
                 rec.getRequestUriHost(),
                 rec.getRequest().getHeaders().getAuthSub(),
                 rec.getAuthenticatedEntity() == null ?
                         null :
-                        rec.getAuthenticatedEntity().getId());
+                        rec.getAuthenticatedEntity().getId(),
+                rec.getConsumer() == null ? null :
+                        rec.getConsumer().getUsername(),
+                rec.getConsumerTags() == null ? null :
+                        Base64.getEncoder().encodeToString(rec.getConsumerTags().getBytes()));
     }
 
     static public MetricsObject parseKey(String key) {
@@ -34,6 +40,12 @@ public class AuthSubWindowKey {
         } else if (!parts[3].equals("null")) {
             record.setAuthSub(parts[3]);
             record.setAuthType(MetricsObject.AUTH_TYPE.oidc);
+        }
+        if (!parts[4].equals("null")) {
+            record.setConsumerUsername(parts[4]);
+        }
+        if (!parts[5].equals("null")) {
+            record.setConsumerTags(new String(Base64.getDecoder().decode(parts[5])));
         }
         return record;
     }

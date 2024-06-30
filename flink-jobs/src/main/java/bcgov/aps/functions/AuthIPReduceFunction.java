@@ -38,6 +38,11 @@ public class AuthIPReduceFunction implements ReduceFunction<KongLogTuple> {
         t.getKongLogRecord().setRequest(new GWRequest());
         t.getKongLogRecord().setRequestUriHost(value1.getKongLogRecord().getRequestUriHost());
         t.getKongLogRecord().getRequest().setHeaders(new GWRequestHeader());
+        t.getKongLogRecord().setConsumer(new GWConsumer());
+        if (value1.getKongLogRecord().getConsumer() != null) {
+            t.getKongLogRecord().getConsumer().setUsername(value1.getKongLogRecord().getConsumer().getUsername());
+        }
+        t.getKongLogRecord().setConsumerTags(value1.getKongLogRecord().getConsumerTags());
         t.getKongLogRecord().getRequest().getHeaders().setAuthSub(value1.getKongLogRecord().getRequest().getHeaders().getAuthSub());
         return t;
     }

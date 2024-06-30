@@ -21,7 +21,7 @@ public class OverflowPrintSinkFunction implements SinkFunction<KongLogTuple> {
 
     @Override
     public void invoke(KongLogTuple value, Context context) {
-        log.error("Out of Window: [{}] {}",
+        log.error("OutOfRange: [{}] {}",
                 context.timestamp() - lastTs, value);
     }
 }
