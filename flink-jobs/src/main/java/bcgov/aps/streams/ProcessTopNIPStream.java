@@ -44,14 +44,12 @@ public class ProcessTopNIPStream {
                 .windowAll(timeWindow)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
-                .map(geoLocation)
-                .map(new
-                        FlinkMetricsExposingMapFunction());
+                .map(geoLocation);
 
         resultStream.addSink(new Slf4jPrintSinkFunction
                 ());
         resultStream.sinkTo(KafkaSinkFunction.build
-                (kafkaBootstrapServers, "siem-data")).name("Kafka Metrics Topic");
+                (kafkaBootstrapServers, "siem-process-data")).name("Kafka Metrics Topic");
 
         DataStream<Tuple2<KongLogRecord, Integer>> lateStream =
                 streamWindow
