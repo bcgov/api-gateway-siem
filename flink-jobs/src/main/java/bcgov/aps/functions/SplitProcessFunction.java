@@ -16,11 +16,12 @@ public class SplitProcessFunction extends ProcessFunction<Tuple2<KongLogRecord, 
 
     private final OutputTag<KongLogTuple> side;
     private final OutputTag<KongLogTuple> side2;
+    private final OutputTag<KongLogTuple> side3;
 
-
-    public SplitProcessFunction(OutputTag<KongLogTuple> side, OutputTag<KongLogTuple> side2) {
+    public SplitProcessFunction(OutputTag<KongLogTuple> side, OutputTag<KongLogTuple> side2, OutputTag<KongLogTuple> side3) {
         this.side = side;
         this.side2 = side2;
+        this.side3 = side3;
     }
 
     @Override
@@ -29,6 +30,7 @@ public class SplitProcessFunction extends ProcessFunction<Tuple2<KongLogRecord, 
                                Collector<Tuple2<KongLogRecord, Integer>> out) {
         ctx.output(side, new KongLogTuple(value.f0, value.f1));
         ctx.output(side2, new KongLogTuple(value.f0, value.f1));
+        ctx.output(side3, new KongLogTuple(value.f0, value.f1));
         out.collect(value);
     }
 }

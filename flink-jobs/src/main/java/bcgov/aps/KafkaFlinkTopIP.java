@@ -4,6 +4,7 @@ import bcgov.aps.functions.*;
 import bcgov.aps.models.*;
 import bcgov.aps.streams.ProcessTopNIPStream;
 import bcgov.aps.streams.SlidingAuthStream;
+import bcgov.aps.streams.TopNErrorsIPStream;
 import bcgov.aps.streams.TopNIPStream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -70,13 +71,15 @@ public class KafkaFlinkTopIP {
                 = new OutputTag<KongLogTuple>("out-1") {};
         final OutputTag<KongLogTuple> out2
                 = new OutputTag<KongLogTuple>("out-2") {};
+        final OutputTag<KongLogTuple> out3
+                = new OutputTag<KongLogTuple>("out-3") {};
 
         SingleOutputStreamOperator<Tuple2<KongLogRecord,
                 Integer>> parsedStream = inputStream
                 .process(new JsonParserProcessFunction()).name("Kafka Input Stream")
                 .assignTimestampsAndWatermarks(new
                         MyAssignerWithPunctuatedWatermarks()).name("Watermarks")
-                .process(new SplitProcessFunction(out1, out2)).name("Split Output");
+                .process(new SplitProcessFunction(out1, out2, out3)).name("Split Output");
 
         new SlidingAuthStream().build(config.getKafkaBootstrapServers(),
                 parsedStream
@@ -85,6 +88,10 @@ public class KafkaFlinkTopIP {
         new TopNIPStream().build(config.getKafkaBootstrapServers(),
                 parsedStream
                         .getSideOutput(out2));
+
+        new TopNErrorsIPStream().build(config.getKafkaBootstrapServers(),
+                parsedStream
+                        .getSideOutput(out3));
 
         new ProcessTopNIPStream().build(config.getKafkaBootstrapServers(),
                 parsedStream);
