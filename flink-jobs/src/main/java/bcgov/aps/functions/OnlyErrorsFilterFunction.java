@@ -8,7 +8,6 @@ import org.apache.flink.api.common.functions.FilterFunction;
 public class OnlyErrorsFilterFunction implements FilterFunction<KongLogTuple> {
     @Override
     public boolean filter(KongLogTuple kong) throws Exception {
-        return kong.getKongLogRecord().getResponse().getStatus() >= 200
-                && kong.getKongLogRecord().getResponse().getStatus() < 400;
+        return kong.getKongLogRecord().getResponse().getStatus() >= 400;
     }
 }
