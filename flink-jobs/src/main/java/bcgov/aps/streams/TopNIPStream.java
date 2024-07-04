@@ -45,7 +45,7 @@ public class TopNIPStream {
                 resultStream
                 = streamWindow
                 .windowAll(tumblingEventTimeWindows)
-                .process(new TopNProcessFunction(10))
+                .process(new TopNProcessWithMetricsFunction(10))
                 .name("Top N").setParallelism(1)
                 .map(geoLocation)
                 .map(new

@@ -79,7 +79,7 @@ public class TestFileTopIP {
                 .windowAll(tumblingEventTimeWindows)
                 .apply(new SlidingGroupByAllWindowFunction())
                 .windowAll(tumblingEventTimeWindows)
-                .process(new TopNAuthProcessFunction(10)).name("Top N").setParallelism(1);
+                .process(new TopNProcessFunction(10)).name("Top N").setParallelism(1);
 
         allWindow.addSink(new Slf4jPrintSinkFunction());
 

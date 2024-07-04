@@ -1,7 +1,6 @@
 package bcgov.aps.functions;
 
 import bcgov.aps.models.GeoLocInfo;
-import bcgov.aps.models.KongLogRecord;
 import bcgov.aps.models.MetricsObject;
 import bcgov.aps.models.WindowKey;
 import lombok.extern.slf4j.Slf4j;
@@ -17,10 +16,37 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 
 @Slf4j
-public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String, Integer>, Tuple2<MetricsObject, Integer>, TimeWindow> {
+public class TopNProcessWithMetricsFunction extends ProcessAllWindowFunction<Tuple2<String, Integer>, Tuple2<MetricsObject, Integer>, TimeWindow> {
     private final int topSize;
 
-    public TopNProcessFunction(int topSize) {
+    private transient int totalIps;
+
+    private transient int totalRequests;
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        OperatorMetricGroup metricGroup =
+                getRuntimeContext().getMetricGroup();
+
+        metricGroup
+                .gauge("aps_siem_ip",
+                        new Gauge<Integer>() {
+                            @Override
+                            public Integer getValue() {
+                                return totalIps;
+                            }
+                        });
+        metricGroup
+                .gauge("aps_siem_requests",
+                        new Gauge<Integer>() {
+                            @Override
+                            public Integer getValue() {
+                                return totalRequests;
+                            }
+                        });
+    }
+
+    public TopNProcessWithMetricsFunction(int topSize) {
         this.topSize = topSize;
     }
 
@@ -34,8 +60,11 @@ public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String,
                 new PriorityQueue<>(Comparator.comparingInt(o -> o.f1));
 
         int other = 0;
+        int ipCount = 0;
+        int requestCount = 0;
         for (Tuple2<String, Integer> element :
                 elements) {
+            ipCount++;
             topN.add(element);
             if (topN.size() > topSize) {
                 Tuple2<String, Integer> kickedOff
@@ -44,7 +73,10 @@ public class TopNProcessFunction extends ProcessAllWindowFunction<Tuple2<String,
                     other += kickedOff.f1;
                 }
             }
+            requestCount += element.f1;
         }
+        totalIps = ipCount;
+        totalRequests = requestCount;
 
         log.info("TopNSize {}", topN.size());
 
