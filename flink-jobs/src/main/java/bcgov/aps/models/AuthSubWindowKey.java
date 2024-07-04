@@ -14,6 +14,7 @@ import java.util.Base64;
  * JWT-KEYCLOAK does not have anything
  */
 
+@Slf4j
 public class AuthSubWindowKey {
     static public String getKey(KongLogRecord rec) {
         return String.format("%s,%s,%s,%s,%s,%s",
@@ -44,7 +45,9 @@ public class AuthSubWindowKey {
         if (!parts[4].equals("null")) {
             record.setConsumerUsername(parts[4]);
         }
-        if (!parts[5].equals("null")) {
+        if (parts.length == 5) {
+            log.warn("MISSING_PART_OF_KEY {}", key);
+        } else if (!parts[5].equals("null")) {
             record.setConsumerTags(new String(Base64.getDecoder().decode(parts[5])));
         }
         record.setSegments(new Segments());
