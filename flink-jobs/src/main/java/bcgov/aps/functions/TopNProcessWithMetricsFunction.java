@@ -2,6 +2,7 @@ package bcgov.aps.functions;
 
 import bcgov.aps.models.GeoLocInfo;
 import bcgov.aps.models.MetricsObject;
+import bcgov.aps.models.Segments;
 import bcgov.aps.models.WindowKey;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -97,6 +98,7 @@ public class TopNProcessWithMetricsFunction extends ProcessAllWindowFunction<Tup
             met.setStatus(MetricsObject.HTTP_STATUS.NA);
             met.setAuthSub("-");
             met.setAuthJti("-");
+            met.setSegments(new Segments());
             met.setGeo(GeoLocInfo.newEmptyGeoInfo(met.getClientIp()));
             out.collect(new Tuple2<>(met, other));
         }

@@ -11,7 +11,7 @@ import lombok.ToString;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MetricsObject {
-    public enum HTTP_STATUS { OK, Error, RateLimited, NA };
+    public enum HTTP_STATUS { OK, Error, RateLimited, NA};
     public enum AUTH_TYPE { oidc, jwt }
 
     String namespace;
@@ -43,6 +43,7 @@ public class MetricsObject {
     @JsonProperty(value = "auth_type")
     AUTH_TYPE authType;
 
+    Segments segments;
 
     GeoLocInfo geo;
 

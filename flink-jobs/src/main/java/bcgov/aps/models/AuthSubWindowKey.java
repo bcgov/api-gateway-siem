@@ -47,6 +47,7 @@ public class AuthSubWindowKey {
         if (!parts[5].equals("null")) {
             record.setConsumerTags(new String(Base64.getDecoder().decode(parts[5])));
         }
+        record.setSegments(new Segments());
         return record;
     }
 
