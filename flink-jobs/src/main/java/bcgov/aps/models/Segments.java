@@ -10,6 +10,6 @@ import lombok.ToString;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Segments {
-    Boolean prodEndpoint;
+    String phase; // non-prod or production
     String ip;
 }
