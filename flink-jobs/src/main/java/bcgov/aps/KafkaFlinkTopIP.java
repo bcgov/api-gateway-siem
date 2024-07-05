@@ -19,8 +19,17 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.util.FileUtils;
 import org.apache.flink.util.OutputTag;
+import org.kie.api.KieServices;
+import org.kie.api.builder.KieFileSystem;
+import org.kie.api.builder.KieRepository;
+import org.kie.api.runtime.KieContainer;
+import org.kie.internal.io.ResourceFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -93,7 +102,8 @@ public class KafkaFlinkTopIP {
                 parsedStream
                         .getSideOutput(out3));
 
-        new ProcessTopNIPStream().build(config.getKafkaBootstrapServers(),
+        String rules = FileUtils.readFileUtf8(new File("./rules.drl"));
+        new ProcessTopNIPStream().build(rules, config.getKafkaBootstrapServers(),
                 parsedStream);
 
         env.execute("Flink Kafka Top IPs");

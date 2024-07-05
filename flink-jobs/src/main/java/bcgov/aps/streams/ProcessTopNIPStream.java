@@ -15,6 +15,7 @@ import java.time.Duration;
 
 public class ProcessTopNIPStream {
     public void build(
+            String rules,
             String kafkaBootstrapServers,
             SingleOutputStreamOperator<Tuple2<KongLogRecord, Integer>> parsedStream) {
 
@@ -44,6 +45,7 @@ public class ProcessTopNIPStream {
                 .windowAll(timeWindow)
                 .process(new TopNProcessFunction(10))
                 .name("Top N").setParallelism(1)
+                .map(new SegmentRulesMapFunction(rules))
                 .map(geoLocation);
 
         resultStream.addSink(new Slf4jPrintSinkFunction

@@ -26,7 +26,7 @@ public class AuthSubWindowKey {
                         rec.getAuthenticatedEntity().getId(),
                 rec.getConsumer() == null ? null :
                         rec.getConsumer().getUsername(),
-                rec.getConsumerTags() == null ? null :
+                rec.getConsumerTags() == null || rec.getConsumerTags().length() == 0 ? null :
                         Base64.getEncoder().encodeToString(rec.getConsumerTags().getBytes()));
     }
 

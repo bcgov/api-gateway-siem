@@ -11,5 +11,5 @@ import lombok.ToString;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Segments {
     Boolean prodEndpoint;
-    String ipSegment;
+    String ip;
 }

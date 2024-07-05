@@ -1,0 +1,8 @@
+package bcgov.aps.models
+
+rule "Segment IP Address - Cluster 1"
+    when
+        $metric : MetricsObject( ['0.0.0.1'].contains(clientIp) )
+    then
+        $metric.getSegments().setIp("cluster_1");
+end
