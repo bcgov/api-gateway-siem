@@ -75,6 +75,11 @@
             <artifactId>drools-compiler</artifactId>
             <version>8.44.2.Final</version>
         </dependency>
+        <dependency>
+            <groupId>org.drools</groupId>
+            <artifactId>drools-wiring-dynamic</artifactId>
+            <version>8.44.2.Final</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.drools/drools-xml-support -->
         <dependency>
             <groupId>org.drools</groupId>
@@ -88,7 +93,13 @@
             <artifactId>drools-mvel</artifactId>
             <version>8.44.2.Final</version>
         </dependency>
-
+        <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.10.3</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

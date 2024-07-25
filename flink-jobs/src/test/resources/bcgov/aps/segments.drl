@@ -1,8 +1,44 @@
-package bcgov.aps.models
+package bcgov.aps
+
+import bcgov.aps.models.MetricsObject
+import bcgov.aps.models.Segments
 
 rule "Segment IP Address - Cluster 1"
     when
-        $metric : MetricsObject( ['0.0.0.1'].contains(clientIp) )
+        $metric : MetricsObject(
+            [
+                '10.10.10.1',
+                '10.10.10.2',
+                '10.10.10.3',
+                '10.10.10.4'
+            ].contains(clientIp) )
     then
         $metric.getSegments().setIp("cluster_1");
+end
+
+rule "Segment Phase"
+    when
+        $metric : MetricsObject(
+            requestUriHost != null,
+          requestUriHost.indexOf(".dev.") >= 0
+          || requestUriHost.indexOf("-dev.") >= 0
+          || requestUriHost.indexOf("-d.") >= 0
+          || requestUriHost.indexOf("-ds.") >= 0
+          || requestUriHost.indexOf(".test.") >= 0
+          || requestUriHost.indexOf("-test.") >= 0
+          || requestUriHost.indexOf("-t.") >= 0
+          || requestUriHost.indexOf("-ts.") >= 0
+      )
+    then
+        $metric.getSegments().setPhase("non-prod");
+end
+
+rule "Segment Phase Default"
+    when
+        $metric : MetricsObject(
+            $segments: segments != null
+        )
+        Segments( phase == null ) from $segments
+    then
+        $metric.getSegments().setPhase("prod");
 end
