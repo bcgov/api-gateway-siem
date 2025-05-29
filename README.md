@@ -32,8 +32,16 @@ docker run -ti --rm --name flink \
 
 ### Top Number of requests by IP
 
-### Top IPs with Unsual Number of Errors
+Identifies and monitors IP addresses generating the highest volume of requests to your API gateway. This helps detect potential DoS attacks, aggressive scrapers, or misconfigured clients that may be overwhelming your services.
+
+### Top IPs with Unusual Number of Errors
+
+Tracks IP addresses experiencing abnormally high error rates, which could indicate potential API abuse, brute force attempts, or clients targeting vulnerable endpoints. This metric helps identify both security threats and problematic API implementations.
 
 ### Credentials used from different IPs
 
+Monitors when the same authentication credentials are used across multiple IP addresses within short time periods. This pattern often indicates credential theft, account sharing, or distributed attacks using compromised credentials.
+
 ### Some successful requests and then spike of failed requests
+
+Detects when an IP address shows a pattern of successful API requests followed by a sudden increase in failures. This behavior is common in reconnaissance activities where attackers probe endpoints before launching targeted attacks.
