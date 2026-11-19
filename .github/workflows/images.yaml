@@ -13,6 +13,9 @@ env:
 jobs:
   build-jobs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push images to ghcr.io with GITHUB_TOKEN
     steps:
       - uses: actions/checkout@v3
       - uses: "./.github/templates/build"
@@ -20,6 +23,6 @@ jobs:
           image_name: jobs
           context_path: flink-jobs
           registry: ${{ env.REGISTRY }}
-          registry_repo_name: ${{ secrets.REGISTRY_REPO_NAME }}
-          registry_username: ${{ secrets.REGISTRY_USERNAME }}
-          registry_password: ${{ secrets.REGISTRY_PASSWORD }}
+          registry_repo_name: ${{ github.repository }}
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
