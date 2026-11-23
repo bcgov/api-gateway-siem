@@ -1,11 +1,11 @@
 FROM amazoncorretto:22-alpine3.19
 
-RUN wget https://dlcdn.apache.org/flink/flink-1.19.0/flink-1.19.0-bin-scala_2.12.tgz \
+RUN wget https://archive.apache.org/dist/flink/flink-1.19.0/flink-1.19.0-bin-scala_2.12.tgz \
  && tar -xf flink-1.19.0-bin-scala_2.12.tgz \
  && rm flink-1.19.0-bin-scala_2.12.tgz
 ENV PATH=$PATH:/flink-1.19.0/bin
 
-RUN wget https://dlcdn.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz \
+RUN wget https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz \
  && tar -xf apache-maven-3.9.6-bin.tar.gz \
  && rm apache-maven-3.9.6-bin.tar.gz
 ENV PATH=$PATH:/apache-maven-3.9.6/bin
